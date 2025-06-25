@@ -32,15 +32,3 @@ This frontend is built using modern web technologies to deliver a fast, accessib
 
 ---
 
-## 🚀 Getting Started
-
-```bash
-# Clone the repo
-git clone https://github.com/Skul-Africa/Skul_Africa_Frontend.git
-cd Skul_Africa_Frontend
-
-# Install dependencies
-npm install
-
-# Run the app
-npm run dev
