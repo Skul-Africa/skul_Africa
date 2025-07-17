@@ -7,9 +7,9 @@ import { Eye, EyeOff } from 'lucide-react';
 const LoginPage = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [address, setAddress] = useState('');
-    const [token, setToken] = useState('');
     const [phone, setPhone] = useState('');
+    const [website, setWebsite] = useState('');
+    const [address, setAddress] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -21,7 +21,7 @@ const LoginPage = () => {
         setSuccess('');
 
         // Basic validation
-        if (!name || !email || !address || !token || !phone) {
+        if (!name || !email || !phone || !website || !address) {
             setError('Please fill in all fields');
             setIsLoading(false);
             return;
@@ -127,7 +127,7 @@ const LoginPage = () => {
                            focus:outline-none focus:ring-2 focus:ring-blue-500 
                            focus:border-transparent bg-white placeholder-gray-500 
                            text-base transition-colors"
-                                    placeholder="Your Name"
+                                    placeholder="Name"
                                     required
                                     disabled={isLoading}
                                 />
@@ -150,40 +150,6 @@ const LoginPage = () => {
                                 />
                             </div>
 
-                            {/* Address Input */}
-                            <div>
-                                <input
-                                    id="address"
-                                    type="text"
-                                    value={address}
-                                    onChange={(e) => setAddress(e.target.value)}
-                                    className="w-full px-4 py-4 border border-gray-300 rounded-lg 
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 
-                           focus:border-transparent bg-white placeholder-gray-500 
-                           text-base transition-colors"
-                                    placeholder="Address"
-                                    required
-                                    disabled={isLoading}
-                                />
-                            </div>
-
-                            {/* Token Input */}
-                            <div>
-                                <input
-                                    id="token"
-                                    type="text"
-                                    value={token}
-                                    onChange={(e) => setToken(e.target.value)}
-                                    className="w-full px-4 py-4 border border-gray-300 rounded-lg 
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 
-                           focus:border-transparent bg-white placeholder-gray-500 
-                           text-base transition-colors"
-                                    placeholder="Token"
-                                    required
-                                    disabled={isLoading}
-                                />
-                            </div>
-
                             {/* Phone Input */}
                             <div>
                                 <input
@@ -196,6 +162,40 @@ const LoginPage = () => {
                            focus:border-transparent bg-white placeholder-gray-500 
                            text-base transition-colors"
                                     placeholder="Phone"
+                                    required
+                                    disabled={isLoading}
+                                />
+                            </div>
+
+                            {/* Website Input */}
+                            <div>
+                                <input
+                                    id="website"
+                                    type="url"
+                                    value={website}
+                                    onChange={(e) => setWebsite(e.target.value)}
+                                    className="w-full px-4 py-4 border border-gray-300 rounded-lg 
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 
+                           focus:border-transparent bg-white placeholder-gray-500 
+                           text-base transition-colors"
+                                    placeholder="Website"
+                                    required
+                                    disabled={isLoading}
+                                />
+                            </div>
+
+                            {/* Address Input */}
+                            <div>
+                                <input
+                                    id="address"
+                                    type="text"
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    className="w-full px-4 py-4 border border-gray-300 rounded-lg 
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 
+                           focus:border-transparent bg-white placeholder-gray-500 
+                           text-base transition-colors"
+                                    placeholder="Address"
                                     required
                                     disabled={isLoading}
                                 />
@@ -292,7 +292,7 @@ const LoginPage = () => {
                              focus:outline-none focus:ring-2 focus:ring-blue-500 
                              focus:border-transparent bg-white/90 placeholder-gray-500 
                              text-sm transition-colors"
-                                        placeholder="Your Name"
+                                        placeholder="Name"
                                         required
                                         disabled={isLoading}
                                     />
@@ -315,40 +315,6 @@ const LoginPage = () => {
                                     />
                                 </div>
 
-                                {/* Address Input */}
-                                <div>
-                                    <input
-                                        id="address"
-                                        type="text"
-                                        value={address}
-                                        onChange={(e) => setAddress(e.target.value)}
-                                        className="w-full px-3 py-3 border border-gray-300 rounded-lg 
-                             focus:outline-none focus:ring-2 focus:ring-blue-500 
-                             focus:border-transparent bg-white/90 placeholder-gray-500 
-                             text-sm transition-colors"
-                                        placeholder="Address"
-                                        required
-                                        disabled={isLoading}
-                                    />
-                                </div>
-
-                                {/* Token Input */}
-                                <div>
-                                    <input
-                                        id="token"
-                                        type="text"
-                                        value={token}
-                                        onChange={(e) => setToken(e.target.value)}
-                                        className="w-full px-3 py-3 border border-gray-300 rounded-lg 
-                             focus:outline-none focus:ring-2 focus:ring-blue-500 
-                             focus:border-transparent bg-white/90 placeholder-gray-500 
-                             text-sm transition-colors"
-                                        placeholder="Token"
-                                        required
-                                        disabled={isLoading}
-                                    />
-                                </div>
-
                                 {/* Phone Input */}
                                 <div>
                                     <input
@@ -361,6 +327,40 @@ const LoginPage = () => {
                              focus:border-transparent bg-white/90 placeholder-gray-500 
                              text-sm transition-colors"
                                         placeholder="Phone"
+                                        required
+                                        disabled={isLoading}
+                                    />
+                                </div>
+
+                                {/* Website Input */}
+                                <div>
+                                    <input
+                                        id="website"
+                                        type="url"
+                                        value={website}
+                                        onChange={(e) => setWebsite(e.target.value)}
+                                        className="w-full px-3 py-3 border border-gray-300 rounded-lg 
+                             focus:outline-none focus:ring-2 focus:ring-blue-500 
+                             focus:border-transparent bg-white/90 placeholder-gray-500 
+                             text-sm transition-colors"
+                                        placeholder="Website"
+                                        required
+                                        disabled={isLoading}
+                                    />
+                                </div>
+
+                                {/* Address Input */}
+                                <div>
+                                    <input
+                                        id="address"
+                                        type="text"
+                                        value={address}
+                                        onChange={(e) => setAddress(e.target.value)}
+                                        className="w-full px-3 py-3 border border-gray-300 rounded-lg 
+                             focus:outline-none focus:ring-2 focus:ring-blue-500 
+                             focus:border-transparent bg-white/90 placeholder-gray-500 
+                             text-sm transition-colors"
+                                        placeholder="Address"
                                         required
                                         disabled={isLoading}
                                     />
@@ -411,4 +411,4 @@ const LoginPage = () => {
     );
 };
 
-export default LoginPage;
+export default LoginPage;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
