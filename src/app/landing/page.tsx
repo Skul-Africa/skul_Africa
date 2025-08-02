@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { Star, BookOpen, GraduationCap, Users, Award, PlayCircle, Clock, Calendar, Moon, Sun, ChevronRight, Target, Lightbulb, Menu, X } from 'lucide-react';
+import { Star, BookOpen, GraduationCap, Users, Award, PlayCircle, Clock, Calendar, Moon, Sun, ChevronRight, Target, Lightbulb, Menu, X, LogIn, UserPlus } from 'lucide-react';
 
 export default function EduCentralLanding() {
   const [currentStudents, setCurrentStudents] = useState(1247);
@@ -24,6 +24,20 @@ export default function EduCentralLanding() {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleLogin = () => {
+    // Navigate to login page
+    console.log('Navigating to login page');
+    // In a real app, you would use router.push('/login') or similar
+    window.location.href = '/login';
+  };
+
+  const handleSignUp = () => {
+    // Navigate to sign up page
+    console.log('Navigating to sign up page');
+    // In a real app, you would use router.push('/signup') or similar
+    window.location.href = '/signup';
   };
 
   const educationIcons = [
@@ -113,13 +127,31 @@ export default function EduCentralLanding() {
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           
-          <button className={`hidden sm:block px-4 sm:px-6 py-2 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base ${
-            isDarkMode 
-              ? 'bg-blue-400 text-blue-900 hover:bg-blue-300' 
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}>
-            Enroll Now
-          </button>
+          {/* Desktop Login/Sign Up Buttons */}
+          <div className="hidden sm:flex items-center space-x-2">
+            <button 
+              onClick={handleLogin}
+              className={`px-4 py-2 rounded-full font-medium transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 ${
+                isDarkMode 
+                  ? 'text-white hover:bg-white/10 border border-white/20' 
+                  : 'text-slate-700 hover:bg-blue-50 border border-blue-200'
+              }`}
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Login</span>
+            </button>
+            <button 
+              onClick={handleSignUp}
+              className={`px-4 sm:px-6 py-2 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base flex items-center space-x-2 ${
+                isDarkMode 
+                  ? 'bg-blue-400 text-blue-900 hover:bg-blue-300' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Sign Up</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -144,13 +176,36 @@ export default function EduCentralLanding() {
                 {item}
               </button>
             ))}
-            <button className={`px-6 py-3 rounded-full font-semibold transition-all duration-300 shadow-lg ${
-              isDarkMode 
-                ? 'bg-blue-400 text-blue-900 hover:bg-blue-300' 
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}>
-              Enroll Now
-            </button>
+            <div className="flex flex-col space-y-3 pt-4 border-t border-white/20">
+              <button 
+                onClick={() => {
+                  handleLogin();
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`px-4 py-3 rounded-full font-medium transition-all duration-300 flex items-center justify-center space-x-2 ${
+                  isDarkMode 
+                    ? 'text-white hover:bg-white/10 border border-white/20' 
+                    : 'text-slate-700 hover:bg-blue-50 border border-blue-200'
+                }`}
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Login</span>
+              </button>
+              <button 
+                onClick={() => {
+                  handleSignUp();
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`px-6 py-3 rounded-full font-semibold transition-all duration-300 shadow-lg flex items-center justify-center space-x-2 ${
+                  isDarkMode 
+                    ? 'bg-blue-400 text-blue-900 hover:bg-blue-300' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Sign Up</span>
+              </button>
+            </div>
           </nav>
         </div>
       )}
@@ -182,14 +237,32 @@ export default function EduCentralLanding() {
             </p>
           </div>
 
-          <button className={`px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center space-x-2 mx-auto lg:mx-0 ${
-            isDarkMode 
-              ? 'bg-blue-400 text-blue-900 hover:bg-blue-300' 
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}>
-            <span>Start Learning</span>
-            <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5" />
-          </button>
+          <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 justify-center lg:justify-start">
+            <button 
+              onClick={handleLogin}
+              className={`px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center space-x-2 ${
+                isDarkMode 
+                  ? 'bg-white/10 text-white hover:bg-white/20 border border-white/30' 
+                  : 'bg-white text-slate-700 hover:bg-gray-50 border border-blue-200 shadow-lg'
+              }`}
+            >
+              <LogIn className="w-4 sm:w-5 h-4 sm:h-5" />
+              <span>Login</span>
+            </button>
+            
+            <button 
+              onClick={handleSignUp}
+              className={`px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center space-x-2 ${
+                isDarkMode 
+                  ? 'bg-blue-400 text-blue-900 hover:bg-blue-300' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              <UserPlus className="w-4 sm:w-5 h-4 sm:h-5" />
+              <span>Get Started</span>
+              <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5" />
+            </button>
+          </div>
 
           <div className={`flex items-center justify-center lg:justify-start space-x-4 backdrop-blur-sm rounded-2xl p-4 max-w-xs mx-auto lg:mx-0 ${
             isDarkMode 

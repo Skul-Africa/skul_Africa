@@ -4,10 +4,10 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Eye, EyeOff } from 'lucide-react';
 
-const schoolAccessPage = () => {
+const StudentAccessPage = () => {
+  const [studentId, setStudentId] = useState('');
   const [accessCode, setAccessCode] = useState('');
-  const [profileCode, setProfileCode] = useState('');
-  const [showProfileCode, setShowProfileCode] = useState(false);
+  const [showAccessCode, setShowAccessCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -19,14 +19,14 @@ const schoolAccessPage = () => {
     setSuccess('');
 
     // Basic validation
-    if (!accessCode || !profileCode) {
+    if (!studentId || !accessCode) {
       setError('Please fill in all fields');
       setIsLoading(false);
       return;
     }
 
-    if (accessCode.length < 3) {
-      setError('Please enter a valid Access Code');
+    if (studentId.length < 3) {
+      setError('Please enter a valid Student ID');
       setIsLoading(false);
       return;
     }
@@ -36,15 +36,15 @@ const schoolAccessPage = () => {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Mock authentication logic
-      if (accessCode === 'ACCESS123' && profileCode === 'PROFILE456') {
+      if (studentId === 'STU001' && accessCode === 'ACCESS123') {
         setSuccess('Access granted! Loading dashboard...');
-        // In a real app, you would redirect to school dashboard
+        // In a real app, you would redirect to student dashboard
         setTimeout(() => {
-          console.log('Redirecting to school dashboard...');
-          // window.location.href = '/school-dashboard';
+          console.log('Redirecting to student dashboard...');
+          // window.location.href = '/student-dashboard';
         }, 1000);
       } else {
-        setError('Invalid Access Code or Profile Code');
+        setError('Invalid Student ID or Access Code');
       }
     } catch (err) {
       setError('Access failed. Please try again.');
@@ -58,7 +58,7 @@ const schoolAccessPage = () => {
       {/* Background Image - Desktop only */}
       <div className="hidden lg:block absolute inset-0 z-0">
         <Image
-          src="/Loginasschool.png"
+          src="/Loginasuser.png"
           alt="Background"
           fill
           className="object-cover"
@@ -71,14 +71,14 @@ const schoolAccessPage = () => {
         {/* Left Side - Illustration - Desktop only */}
         <div className="hidden lg:block absolute left-0 top-1/2 transform -translate-y-1/2 p-8 lg:p-12">
           <div className="w-500 max-w-lg lg:max-w-xl">
-            {/* <Image
+            <Image
               src="/login-illustration.png"
-              alt="Welcome Illustration"
+              alt="Student Access Illustration"
               width={660}
               height={460}
               className="w-full h-auto"
               priority
-            /> */}
+            />
           </div>
         </div>
 
@@ -100,8 +100,8 @@ const schoolAccessPage = () => {
 
             {/* Welcome Text */}
             <div className="text-left mb-6">
-              <p className="text-gray-600 text-xs mb-1">Welcome</p>
-              <h2 className="text-lg font-bold text-gray-900">Log in to Your Account</h2>
+              <p className="text-gray-600 text-xs mb-1">STUDENT ACCESS</p>
+              <h2 className="text-lg font-bold text-gray-900">Enter Your Credentials</h2>
             </div>
 
             {/* Error/Success Messages */}
@@ -117,14 +117,31 @@ const schoolAccessPage = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 flex-1">
-              {/* Access Code Input */}
+              {/* Student ID Input */}
               <div>
                 <input
-                  id="accessCode"
+                  id="studentId"
                   type="text"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg 
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 
+                           focus:border-transparent bg-white placeholder-gray-500 
+                           text-base transition-colors"
+                  placeholder="Student ID"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+
+              {/* Access Code Input */}
+              <div className="relative">
+                <input
+                  id="accessCode"
+                  type={showAccessCode ? "text" : "password"}
                   value={accessCode}
                   onChange={(e) => setAccessCode(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg 
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg 
                            focus:outline-none focus:ring-2 focus:ring-blue-500 
                            focus:border-transparent bg-white placeholder-gray-500 
                            text-base transition-colors"
@@ -132,35 +149,18 @@ const schoolAccessPage = () => {
                   required
                   disabled={isLoading}
                 />
-              </div>
-
-              {/* Profile Code Input */}
-              <div className="relative">
-                <input
-                  id="profileCode"
-                  type={showProfileCode ? "text" : "password"}
-                  value={profileCode}
-                  onChange={(e) => setProfileCode(e.target.value)}
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg 
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 
-                           focus:border-transparent bg-white placeholder-gray-500 
-                           text-base transition-colors"
-                  placeholder="Profile Code"
-                  required
-                  disabled={isLoading}
-                />
                 <button
                   type="button"
-                  onClick={() => setShowProfileCode(!showProfileCode)}
+                  onClick={() => setShowAccessCode(!showAccessCode)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 
                            text-gray-500 hover:text-gray-700 transition-colors"
                   disabled={isLoading}
                 >
-                  {showProfileCode ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showAccessCode ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
 
-              {/* Remember Me and Forgot Profile Code */}
+              {/* Remember Me and Forgot Access Code */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
@@ -176,7 +176,7 @@ const schoolAccessPage = () => {
                 </div>
                 <a href="#" className="text-sm text-gray-600 hover:text-gray-800 
                                      transition-colors">
-                  Forgot Profile Code?
+                  Forgot Access Code?
                 </a>
               </div>
 
@@ -210,7 +210,7 @@ const schoolAccessPage = () => {
             {/* Sign Up Link - Moved to bottom */}
             <div className="mt-auto pt-6 text-center">
               <p className="text-sm text-gray-600">
-                New school?{' '}
+                New Student?{' '}
                 <a href="#" className="text-gray-900 hover:text-gray-700 
                                      font-medium underline transition-colors">
                   REGISTER HERE
@@ -243,8 +243,8 @@ const schoolAccessPage = () => {
 
               {/* Welcome Text */}
               <div className="text-left mb-4 mt-6">
-                <p className="text-gray-600 text-xs mb-1">Welcome</p>
-                <h2 className="text-base font-bold text-gray-900">Log in to Your Account</h2>
+                <p className="text-gray-600 text-xs mb-1">STUDENT ACCESS</p>
+                <h2 className="text-base font-bold text-gray-900">Enter Your Credentials</h2>
               </div>
 
               {/* Error/Success Messages */}
@@ -260,14 +260,31 @@ const schoolAccessPage = () => {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3 flex-1">
-                {/* Access Code Input */}
+                {/* Student ID Input */}
                 <div>
                   <input
-                    id="accessCode"
+                    id="studentId"
                     type="text"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+                             focus:outline-none focus:ring-2 focus:ring-blue-500 
+                             focus:border-transparent bg-white/90 placeholder-gray-500 
+                             text-sm transition-colors"
+                    placeholder="Student ID"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+
+                {/* Access Code Input */}
+                <div className="relative">
+                  <input
+                    id="accessCode"
+                    type={showAccessCode ? "text" : "password"}
                     value={accessCode}
                     onChange={(e) => setAccessCode(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg 
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg 
                              focus:outline-none focus:ring-2 focus:ring-blue-500 
                              focus:border-transparent bg-white/90 placeholder-gray-500 
                              text-sm transition-colors"
@@ -275,35 +292,18 @@ const schoolAccessPage = () => {
                     required
                     disabled={isLoading}
                   />
-                </div>
-
-                {/* Profile Code Input */}
-                <div className="relative">
-                  <input
-                    id="profileCode"
-                    type={showProfileCode ? "text" : "password"}
-                    value={profileCode}
-                    onChange={(e) => setProfileCode(e.target.value)}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg 
-                             focus:outline-none focus:ring-2 focus:ring-blue-500 
-                             focus:border-transparent bg-white/90 placeholder-gray-500 
-                             text-sm transition-colors"
-                    placeholder="Profile Code"
-                    required
-                    disabled={isLoading}
-                  />
                   <button
                     type="button"
-                    onClick={() => setShowProfileCode(!showProfileCode)}
+                    onClick={() => setShowAccessCode(!showAccessCode)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 
                              text-gray-500 hover:text-gray-700 transition-colors"
                     disabled={isLoading}
                   >
-                    {showProfileCode ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showAccessCode ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
 
-                {/* Remember Me and Forgot Profile Code */}
+                {/* Remember Me and Forgot Access Code */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <input
@@ -319,7 +319,7 @@ const schoolAccessPage = () => {
                   </div>
                   <a href="#" className="text-xs text-gray-600 hover:text-gray-800 
                                        transition-colors">
-                    Forgot Profile Code?
+                    Forgot Access Code?
                   </a>
                 </div>
 
@@ -353,8 +353,8 @@ const schoolAccessPage = () => {
               {/* Sign Up Link - Moved to bottom */}
               <div className="mt-auto pt-4 text-center">
                 <p className="text-xs text-gray-600">
-                  New school?{' '}
-                  <a href="#" className="text-gray-900 hover:text-gray-700 
+                  New Student?{' '}
+                  <a href="/signup/student" className="text-gray-900 hover:text-gray-700 
                                        font-medium underline transition-colors">
                     REGISTER HERE
                   </a>
@@ -368,4 +368,4 @@ const schoolAccessPage = () => {
   );
 };
 
-export default schoolAccessPage;
+export default StudentAccessPage;

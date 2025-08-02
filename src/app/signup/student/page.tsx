@@ -397,7 +397,7 @@ const LoginPage = () => {
                             <div className="mt-auto pt-4 text-center">
                                 <p className="text-xs text-gray-600">
                                     Already have an account?{' '}
-                                    <a href="#" className="text-gray-900 hover:text-gray-700 
+                                    <a href="/login/login_as_student" className="text-gray-900 hover:text-gray-700 
                                        font-medium underline transition-colors">
                                         LOGIN HERE
                                     </a>

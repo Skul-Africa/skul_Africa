@@ -2,15 +2,76 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 
-const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+// API configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://skul-africa.onrender.com';
+
+// Types for API responses
+interface LoginResponse {
+  message: string;
+  token: string;
+}
+
+interface LoginRequest {
+  accessCode: string;
+  profileCode: string;
+}
+
+const schoolAccessPage = () => {
+  const router = useRouter();
+  const [accessCode, setAccessCode] = useState('');
+  const [profileCode, setProfileCode] = useState('');
+  const [showProfileCode, setShowProfileCode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Token management functions
+  const saveTokens = (token: string) => {
+    try {
+      // Save to localStorage for persistence across browser sessions
+      localStorage.setItem('school_token', token);
+      localStorage.setItem('school_token_timestamp', Date.now().toString());
+      
+      // Also save to sessionStorage as backup
+      sessionStorage.setItem('school_token', token);
+      
+      console.log('Tokens saved successfully');
+    } catch (error) {
+      console.error('Error saving tokens:', error);
+      // Fallback to sessionStorage only if localStorage fails
+      sessionStorage.setItem('school_token', token);
+    }
+  };
+
+  const clearTokens = () => {
+    try {
+      localStorage.removeItem('school_token');
+      localStorage.removeItem('school_token_timestamp');
+      sessionStorage.removeItem('school_token');
+    } catch (error) {
+      console.error('Error clearing tokens:', error);
+    }
+  };
+
+  const handleLogin = async (loginData: LoginRequest): Promise<LoginResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/school/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(loginData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Login failed: ${response.status}`);
+    }
+
+    return response.json();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,35 +80,42 @@ const LoginPage = () => {
     setSuccess('');
 
     // Basic validation
-    if (!email || !password) {
+    if (!accessCode || !profileCode) {
       setError('Please fill in all fields');
       setIsLoading(false);
       return;
     }
 
-    if (!email.includes('@')) {
-      setError('Please enter a valid email address');
+    if (accessCode.length < 3) {
+      setError('Please enter a valid Access Code');
       setIsLoading(false);
       return;
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const loginData: LoginRequest = {
+        accessCode: accessCode.trim().toUpperCase(),
+        profileCode: profileCode.trim().toUpperCase(),
+      };
+
+      const response = await handleLogin(loginData);
       
-      // Mock authentication logic
-      if (email === 'admin@example.com' && password === 'password123') {
-        setSuccess('Login successful! Redirecting...');
-        // In a real app, you would redirect to dashboard or set auth token
-        setTimeout(() => {
-          console.log('Redirecting to dashboard...');
-          // window.location.href = '/dashboard';
-        }, 1000);
-      } else {
-        setError('Invalid email or password');
-      }
+      // Save tokens securely
+      saveTokens(response.token);
+      
+      setSuccess(response.message || 'Login successful! Redirecting...');
+      
+      // Redirect to dashboard after successful login
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1500);
+      
     } catch (err) {
-      setError('Login failed. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      setError(errorMessage);
+      
+      // Clear any existing tokens on failed login
+      clearTokens();
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +126,7 @@ const LoginPage = () => {
       {/* Background Image - Desktop only */}
       <div className="hidden lg:block absolute inset-0 z-0">
         <Image
-          src="/Loginasuser.png"
+          src="/Loginasschool.png"
           alt="Background"
           fill
           className="object-cover"
@@ -71,14 +139,14 @@ const LoginPage = () => {
         {/* Left Side - Illustration - Desktop only */}
         <div className="hidden lg:block absolute left-0 top-1/2 transform -translate-y-1/2 p-8 lg:p-12">
           <div className="w-500 max-w-lg lg:max-w-xl">
-            <Image
+            {/* <Image
               src="/login-illustration.png"
-              alt="Login Illustration"
+              alt="Welcome Illustration"
               width={660}
               height={460}
               className="w-full h-auto"
               priority
-            />
+            /> */}
           </div>
         </div>
 
@@ -100,8 +168,8 @@ const LoginPage = () => {
 
             {/* Welcome Text */}
             <div className="text-left mb-6">
-              <p className="text-gray-600 text-xs mb-1">WELCOME BACK</p>
-              <h2 className="text-lg font-bold text-gray-900">Log In to your Account</h2>
+              <p className="text-gray-600 text-xs mb-1">Welcome</p>
+              <h2 className="text-lg font-bold text-gray-900">Log in to Your Account</h2>
             </div>
 
             {/* Error/Success Messages */}
@@ -117,46 +185,48 @@ const LoginPage = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 flex-1">
-              {/* Email Input */}
+              {/* Access Code Input */}
               <div>
                 <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="accessCode"
+                  type="text"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg 
                            focus:outline-none focus:ring-2 focus:ring-blue-500 
                            focus:border-transparent bg-white placeholder-gray-500 
                            text-base transition-colors"
-                  placeholder="Email"
+                  placeholder="Access Code"
                   required
                   disabled={isLoading}
+                  autoComplete="username"
                 />
               </div>
 
-              {/* Password Input */}
+              {/* Profile Code Input */}
               <div className="relative">
                 <input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  id="profileCode"
+                  type={showProfileCode ? "text" : "password"}
+                  value={profileCode}
+                  onChange={(e) => setProfileCode(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg 
                            focus:outline-none focus:ring-2 focus:ring-blue-500 
                            focus:border-transparent bg-white placeholder-gray-500 
                            text-base transition-colors"
-                  placeholder="Password"
+                  placeholder="Profile Code"
                   required
                   disabled={isLoading}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowProfileCode(!showProfileCode)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 
                            text-gray-500 hover:text-gray-700 transition-colors"
                   disabled={isLoading}
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showProfileCode ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
 
@@ -176,7 +246,7 @@ const LoginPage = () => {
                 </div>
                 <a href="#" className="text-sm text-gray-600 hover:text-gray-800 
                                      transition-colors">
-                  Forgot Password?
+                  Forgot Profile Code?
                 </a>
               </div>
 
@@ -199,7 +269,7 @@ const LoginPage = () => {
                       <path className="opacity-75" fill="currentColor" 
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    LOGGING IN...
+                    ACCESSING...
                   </span>
                 ) : (
                   'CONTINUE'
@@ -210,10 +280,10 @@ const LoginPage = () => {
             {/* Sign Up Link - Moved to bottom */}
             <div className="mt-auto pt-6 text-center">
               <p className="text-sm text-gray-600">
-                New User?{' '}
+                New school?{' '}
                 <a href="#" className="text-gray-900 hover:text-gray-700 
                                      font-medium underline transition-colors">
-                  SIGN UP HERE
+                  REGISTER HERE
                 </a>
               </p>
             </div>
@@ -243,8 +313,8 @@ const LoginPage = () => {
 
               {/* Welcome Text */}
               <div className="text-left mb-4 mt-6">
-                <p className="text-gray-600 text-xs mb-1">WELCOME BACK</p>
-                <h2 className="text-base font-bold text-gray-900">Log In to your Account</h2>
+                <p className="text-gray-600 text-xs mb-1">Welcome</p>
+                <h2 className="text-base font-bold text-gray-900">Log in to Your Account</h2>
               </div>
 
               {/* Error/Success Messages */}
@@ -260,46 +330,48 @@ const LoginPage = () => {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3 flex-1">
-                {/* Email Input */}
+                {/* Access Code Input */}
                 <div>
                   <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="accessCode-desktop"
+                    type="text"
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg 
                              focus:outline-none focus:ring-2 focus:ring-blue-500 
                              focus:border-transparent bg-white/90 placeholder-gray-500 
                              text-sm transition-colors"
-                    placeholder="Email"
+                    placeholder="Access Code"
                     required
                     disabled={isLoading}
+                    autoComplete="username"
                   />
                 </div>
 
-                {/* Password Input */}
+                {/* Profile Code Input */}
                 <div className="relative">
                   <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    id="profileCode-desktop"
+                    type={showProfileCode ? "text" : "password"}
+                    value={profileCode}
+                    onChange={(e) => setProfileCode(e.target.value)}
                     className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg 
                              focus:outline-none focus:ring-2 focus:ring-blue-500 
                              focus:border-transparent bg-white/90 placeholder-gray-500 
                              text-sm transition-colors"
-                    placeholder="Password"
+                    placeholder="Profile Code"
                     required
                     disabled={isLoading}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowProfileCode(!showProfileCode)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 
                              text-gray-500 hover:text-gray-700 transition-colors"
                     disabled={isLoading}
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showProfileCode ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
 
@@ -307,19 +379,19 @@ const LoginPage = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <input
-                      id="remember"
+                      id="remember-desktop"
                       type="checkbox"
                       className="h-3 w-3 text-blue-600 focus:ring-blue-500 
                                border-gray-300 rounded"
                       disabled={isLoading}
                     />
-                    <label htmlFor="remember" className="ml-2 block text-xs text-gray-700">
+                    <label htmlFor="remember-desktop" className="ml-2 block text-xs text-gray-700">
                       Remember me
                     </label>
                   </div>
                   <a href="#" className="text-xs text-gray-600 hover:text-gray-800 
                                        transition-colors">
-                    Forgot Password?
+                    Forgot Profile Code?
                   </a>
                 </div>
 
@@ -342,7 +414,7 @@ const LoginPage = () => {
                         <path className="opacity-75" fill="currentColor" 
                               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      LOGGING IN...
+                      ACCESSING...
                     </span>
                   ) : (
                     'CONTINUE'
@@ -353,10 +425,10 @@ const LoginPage = () => {
               {/* Sign Up Link - Moved to bottom */}
               <div className="mt-auto pt-4 text-center">
                 <p className="text-xs text-gray-600">
-                  New User?{' '}
-                  <a href="#" className="text-gray-900 hover:text-gray-700 
+                  New school?{' '}
+                  <a href="/signup/school" className="text-gray-900 hover:text-gray-700 
                                        font-medium underline transition-colors">
-                    SIGN UP HERE
+                    REGISTER HERE
                   </a>
                 </p>
               </div>
@@ -368,4 +440,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default schoolAccessPage;

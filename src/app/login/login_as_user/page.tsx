@@ -2,15 +2,81 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 
-const StudentAccessPage = () => {
-  const [studentId, setStudentId] = useState('');
-  const [accessCode, setAccessCode] = useState('');
-  const [showAccessCode, setShowAccessCode] = useState(false);
+// API configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://skul-africa.onrender.com';
+
+// Types for API responses
+interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+}
+
+interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+const LoginPage = () => {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Token management functions
+  const saveTokens = (accessToken: string, refreshToken: string) => {
+    try {
+      // Save to localStorage for persistence across browser sessions
+      localStorage.setItem('access_token', accessToken);
+      localStorage.setItem('refresh_token', refreshToken);
+      localStorage.setItem('user_token_timestamp', Date.now().toString());
+      
+      // Also save to sessionStorage as backup
+      sessionStorage.setItem('access_token', accessToken);
+      sessionStorage.setItem('refresh_token', refreshToken);
+      
+      console.log('User tokens saved successfully');
+    } catch (error) {
+      console.error('Error saving tokens:', error);
+      // Fallback to sessionStorage only if localStorage fails
+      sessionStorage.setItem('access_token', accessToken);
+      sessionStorage.setItem('refresh_token', refreshToken);
+    }
+  };
+
+  const clearTokens = () => {
+    try {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user_token_timestamp');
+      sessionStorage.removeItem('access_token');
+      sessionStorage.removeItem('refresh_token');
+    } catch (error) {
+      console.error('Error clearing tokens:', error);
+    }
+  };
+
+  const handleLogin = async (loginData: LoginRequest): Promise<LoginResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/user/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(loginData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Login failed: ${response.status}`);
+    }
+
+    return response.json();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,35 +85,44 @@ const StudentAccessPage = () => {
     setSuccess('');
 
     // Basic validation
-    if (!studentId || !accessCode) {
+    if (!email || !password) {
       setError('Please fill in all fields');
       setIsLoading(false);
       return;
     }
 
-    if (studentId.length < 3) {
-      setError('Please enter a valid Student ID');
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
       setIsLoading(false);
       return;
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const loginData: LoginRequest = {
+        email: email.trim(),
+        password: password,
+      };
+
+      const response = await handleLogin(loginData);
       
-      // Mock authentication logic
-      if (studentId === 'STU001' && accessCode === 'ACCESS123') {
-        setSuccess('Access granted! Loading dashboard...');
-        // In a real app, you would redirect to student dashboard
-        setTimeout(() => {
-          console.log('Redirecting to student dashboard...');
-          // window.location.href = '/student-dashboard';
-        }, 1000);
-      } else {
-        setError('Invalid Student ID or Access Code');
-      }
+      // Save tokens securely
+      saveTokens(response.access_token, response.refresh_token);
+      
+      setSuccess('Login successful! Redirecting...');
+      
+      // Redirect to dashboard after successful login
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1500);
+      
     } catch (err) {
-      setError('Access failed. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
+      setError(errorMessage);
+      
+      // Clear any existing tokens on failed login
+      clearTokens();
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +148,7 @@ const StudentAccessPage = () => {
           <div className="w-500 max-w-lg lg:max-w-xl">
             <Image
               src="/login-illustration.png"
-              alt="Student Access Illustration"
+              alt="Login Illustration"
               width={660}
               height={460}
               className="w-full h-auto"
@@ -100,8 +175,8 @@ const StudentAccessPage = () => {
 
             {/* Welcome Text */}
             <div className="text-left mb-6">
-              <p className="text-gray-600 text-xs mb-1">STUDENT ACCESS</p>
-              <h2 className="text-lg font-bold text-gray-900">Enter Your Credentials</h2>
+              <p className="text-gray-600 text-xs mb-1">WELCOME BACK</p>
+              <h2 className="text-lg font-bold text-gray-900">Log In to your Account</h2>
             </div>
 
             {/* Error/Success Messages */}
@@ -117,50 +192,52 @@ const StudentAccessPage = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4 flex-1">
-              {/* Student ID Input */}
+              {/* Email Input */}
               <div>
                 <input
-                  id="studentId"
-                  type="text"
-                  value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg 
                            focus:outline-none focus:ring-2 focus:ring-blue-500 
                            focus:border-transparent bg-white placeholder-gray-500 
                            text-base transition-colors"
-                  placeholder="Student ID"
+                  placeholder="Email"
                   required
                   disabled={isLoading}
+                  autoComplete="email"
                 />
               </div>
 
-              {/* Access Code Input */}
+              {/* Password Input */}
               <div className="relative">
                 <input
-                  id="accessCode"
-                  type={showAccessCode ? "text" : "password"}
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg 
                            focus:outline-none focus:ring-2 focus:ring-blue-500 
                            focus:border-transparent bg-white placeholder-gray-500 
                            text-base transition-colors"
-                  placeholder="Access Code"
+                  placeholder="Password"
                   required
                   disabled={isLoading}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowAccessCode(!showAccessCode)}
+                  onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 transform -translate-y-1/2 
                            text-gray-500 hover:text-gray-700 transition-colors"
                   disabled={isLoading}
                 >
-                  {showAccessCode ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
 
-              {/* Remember Me and Forgot Access Code */}
+              {/* Remember Me and Forgot Password */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
@@ -176,7 +253,7 @@ const StudentAccessPage = () => {
                 </div>
                 <a href="#" className="text-sm text-gray-600 hover:text-gray-800 
                                      transition-colors">
-                  Forgot Access Code?
+                  Forgot Password?
                 </a>
               </div>
 
@@ -199,7 +276,7 @@ const StudentAccessPage = () => {
                       <path className="opacity-75" fill="currentColor" 
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    ACCESSING...
+                    LOGGING IN...
                   </span>
                 ) : (
                   'CONTINUE'
@@ -210,10 +287,10 @@ const StudentAccessPage = () => {
             {/* Sign Up Link - Moved to bottom */}
             <div className="mt-auto pt-6 text-center">
               <p className="text-sm text-gray-600">
-                New Student?{' '}
+                New User?{' '}
                 <a href="#" className="text-gray-900 hover:text-gray-700 
                                      font-medium underline transition-colors">
-                  REGISTER HERE
+                  SIGN UP HERE
                 </a>
               </p>
             </div>
@@ -243,8 +320,8 @@ const StudentAccessPage = () => {
 
               {/* Welcome Text */}
               <div className="text-left mb-4 mt-6">
-                <p className="text-gray-600 text-xs mb-1">STUDENT ACCESS</p>
-                <h2 className="text-base font-bold text-gray-900">Enter Your Credentials</h2>
+                <p className="text-gray-600 text-xs mb-1">WELCOME BACK</p>
+                <h2 className="text-base font-bold text-gray-900">Log In to your Account</h2>
               </div>
 
               {/* Error/Success Messages */}
@@ -260,66 +337,68 @@ const StudentAccessPage = () => {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3 flex-1">
-                {/* Student ID Input */}
+                {/* Email Input */}
                 <div>
                   <input
-                    id="studentId"
-                    type="text"
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
+                    id="email-desktop"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg 
                              focus:outline-none focus:ring-2 focus:ring-blue-500 
                              focus:border-transparent bg-white/90 placeholder-gray-500 
                              text-sm transition-colors"
-                    placeholder="Student ID"
+                    placeholder="Email"
                     required
                     disabled={isLoading}
+                    autoComplete="email"
                   />
                 </div>
 
-                {/* Access Code Input */}
+                {/* Password Input */}
                 <div className="relative">
                   <input
-                    id="accessCode"
-                    type={showAccessCode ? "text" : "password"}
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
+                    id="password-desktop"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg 
                              focus:outline-none focus:ring-2 focus:ring-blue-500 
                              focus:border-transparent bg-white/90 placeholder-gray-500 
                              text-sm transition-colors"
-                    placeholder="Access Code"
+                    placeholder="Password"
                     required
                     disabled={isLoading}
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowAccessCode(!showAccessCode)}
+                    onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 
                              text-gray-500 hover:text-gray-700 transition-colors"
                     disabled={isLoading}
                   >
-                    {showAccessCode ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
 
-                {/* Remember Me and Forgot Access Code */}
+                {/* Remember Me and Forgot Password */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <input
-                      id="remember"
+                      id="remember-desktop"
                       type="checkbox"
                       className="h-3 w-3 text-blue-600 focus:ring-blue-500 
                                border-gray-300 rounded"
                       disabled={isLoading}
                     />
-                    <label htmlFor="remember" className="ml-2 block text-xs text-gray-700">
+                    <label htmlFor="remember-desktop" className="ml-2 block text-xs text-gray-700">
                       Remember me
                     </label>
                   </div>
                   <a href="#" className="text-xs text-gray-600 hover:text-gray-800 
                                        transition-colors">
-                    Forgot Access Code?
+                    Forgot Password?
                   </a>
                 </div>
 
@@ -342,7 +421,7 @@ const StudentAccessPage = () => {
                         <path className="opacity-75" fill="currentColor" 
                               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      ACCESSING...
+                      LOGGING IN...
                     </span>
                   ) : (
                     'CONTINUE'
@@ -353,10 +432,10 @@ const StudentAccessPage = () => {
               {/* Sign Up Link - Moved to bottom */}
               <div className="mt-auto pt-4 text-center">
                 <p className="text-xs text-gray-600">
-                  New Student?{' '}
-                  <a href="#" className="text-gray-900 hover:text-gray-700 
+                  New User?{' '}
+                  <a href="/signup/user" className="text-gray-900 hover:text-gray-700 
                                        font-medium underline transition-colors">
-                    REGISTER HERE
+                    SIGN UP HERE
                   </a>
                 </p>
               </div>
@@ -368,4 +447,4 @@ const StudentAccessPage = () => {
   );
 };
 
-export default StudentAccessPage;
+export default LoginPage;
