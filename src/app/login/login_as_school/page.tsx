@@ -126,7 +126,7 @@ const schoolAccessPage = () => {
       {/* Background Image - Desktop only */}
       <div className="hidden lg:block absolute inset-0 z-0">
         <Image
-          src="/Loginasschool.png"
+          src="/Loginasuser.png"
           alt="Background"
           fill
           className="object-cover"
@@ -139,14 +139,14 @@ const schoolAccessPage = () => {
         {/* Left Side - Illustration - Desktop only */}
         <div className="hidden lg:block absolute left-0 top-1/2 transform -translate-y-1/2 p-8 lg:p-12">
           <div className="w-500 max-w-lg lg:max-w-xl">
-            {/* <Image
-              src="/login-illustration.png"
+            <Image
+              src="/schoolimage.png"
               alt="Welcome Illustration"
               width={660}
               height={460}
               className="w-full h-auto"
               priority
-            /> */}
+            />
           </div>
         </div>
 

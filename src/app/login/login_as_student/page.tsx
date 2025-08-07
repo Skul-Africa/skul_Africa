@@ -128,7 +128,7 @@ const StudentAccessPage = () => {
         <div className="hidden lg:block absolute left-0 top-1/2 transform -translate-y-1/2 p-8 lg:p-12">
           <div className="w-500 max-w-lg lg:max-w-xl">
             <Image
-              src="/login-illustration.png"
+              src="/studentimage.png"
               alt="Student Access Illustration"
               width={660}
               height={460}
