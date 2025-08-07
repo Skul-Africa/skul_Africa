@@ -32,16 +32,16 @@ export default function RoleSelectionPage() {
       // Navigate based on selected role
       switch (selectedRole) {
         case 'school':
-          router.push('/login_as_school');
+          router.push('/login/login_as_school');
           break;
         case 'student':
-          router.push('/login_as_student');
+          router.push('/login/login_as_student');
           break;
         case 'user':
-          router.push('/login_as_user');
+          router.push('/login/login_as_user');
           break;
         default:
-          router.push('/dashboard');
+          router.push('/login/dashboard');
       }
     }
   };
