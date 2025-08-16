@@ -1,0 +1,282 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { Poppins } from "next/font/google";
+
+// Lucide Icons
+import {
+  Home,
+  Users,
+  User,
+  BookOpen,
+  Calendar,
+  Settings,
+  Newspaper,
+  LogOut,
+  Menu,
+  Search,
+  BarChart as LucideBarChart, // Only for icon usage
+} from "lucide-react";
+
+// Custom Components
+import RightPanel from "./RightPanel";
+import PerformanceChart from "@/components/charts/PerformanceChart";
+
+// Recharts
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
+import DashboardCalendar from "@/components/DashboardCalendar";
+
+
+const poppins = Poppins({
+  weight: ["400", "500", "600", "700", "800", "900"],
+  subsets: ["latin"],
+});
+
+type ChartRow = { month: string; thisWeek: number; lastWeek: number };
+
+function Sidebar({
+  isMobileMenuOpen,
+  setIsMobileMenuOpen,
+}: {
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (open: boolean) => void;
+}) {
+  return (
+    <aside
+      className={`flex flex-col justify-between bg-[#073B7F] text-white w-16 sm:w-48 h-screen fixed left-0 top-0 transition-all duration-300 z-40
+      ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"}`}
+    >
+      {/* Mobile menu toggle */}
+      <button
+        className="sm:hidden absolute right-2 top-2 p-1"
+        onClick={() => setIsMobileMenuOpen(false)}
+      >
+        <Menu size={24} className="text-white" />
+      </button>
+
+      {/* Logo */}
+      <div>
+        <h2
+          className={`${poppins.className} flex items-center justify-center gap-2 text-lg sm:text-2xl font-semibold py-6`}
+        >
+          <Image src="/logo.png" alt="Skul Africa Logo" width={28} height={28} priority />
+          <span className="hidden sm:inline">Skul Africa</span>
+        </h2>
+
+        {/* Menu */}
+        <nav>
+          <ul className="space-y-1">
+            <li className="flex items-center justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 bg-white rounded-l-full text-black cursor-pointer">
+              <Home size={18} />
+              <span className="hidden sm:inline text-sm">Dashboard</span>
+            </li>
+            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
+              <Users size={18} />
+              <span className="hidden sm:inline text-sm">Students</span>
+            </li>
+            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
+              <User size={18} />
+              <span className="hidden sm:inline text-sm">Teachers</span>
+            </li>
+            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
+              <Calendar size={18} />
+              <span className="hidden sm:inline text-sm">Classes</span>
+            </li>
+            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
+              <BookOpen size={18} />
+              <span className="hidden sm:inline text-sm">Subjects</span>
+            </li>
+            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
+              <Calendar size={18} />
+              <span className="hidden sm:inline text-sm">Events</span>
+            </li>
+            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
+              <Settings size={18} />
+              <span className="hidden sm:inline text-sm">Settings</span>
+            </li>
+            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
+              <Newspaper size={18} />
+              <span className="hidden sm:inline text-sm">News & Updates</span>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      {/* User & Logout */}
+      <div className="p-3 sm:p-4">
+        <div className="flex items-center justify-center sm:justify-start gap-0 sm:gap-3 mb-3">
+          <Image
+            src="/logo.png"
+            alt="Skul Africa Logo"
+            width={35}
+            height={35}
+            className="rounded-full bg-white/10 p-1"
+          />
+          <div className="hidden sm:block">
+            <p className="font-semibold text-sm">Code Flex</p>
+            <p className="text-xs opacity-75">Admin</p>
+          </div>
+        </div>
+        <button className="flex items-center justify-center sm:justify-center gap-2 hover:bg-white border hover:text-[#073B7F] bg-[#073B7F] border-white text-white w-full py-1.5 rounded-full font-semibold text-sm">
+          <LogOut size={16} />
+          <span className="hidden sm:inline">Logout</span>
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+export default function Layout() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+
+  return (
+    <div className="flex flex-col sm:flex-row">
+      <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
+
+      {/* Mobile menu toggle button */}
+      <button
+        className="sm:hidden fixed left-2 top-2 z-30 p-2 bg-[#073B7F] text-white rounded-md"
+        onClick={() => setIsMobileMenuOpen(true)}
+      >
+        <Menu size={20} />
+      </button>
+
+      <main className="ml-0 sm:ml-48 flex-1 sm:mr-72 p-4 sm:p-6 bg-gray-50 min-h-screen">
+        {/* Top Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800 mt-2 sm:mt-0">
+            Welcome Back, Code Flex
+          </h1>
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Search here..."
+              className="w-full pl-10 pr-4 py-2 bg-white color-blue rounded-full border shadow border-white focus:outline-none focus:border-blue-400"
+            />
+            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-800" />
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div className="flex items-center gap-3 bg-white p-3 sm:p-4 rounded-xl shadow">
+            <div className="p-2 sm:p-3 rounded-full bg-indigo-600 text-white">
+              <Users size={18} className="sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-xs sm:text-sm">Students</p>
+              <p className="text-lg sm:text-2xl font-bold">0</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white p-3 sm:p-4 rounded-xl shadow">
+            <div className="p-2 sm:p-3 rounded-full bg-red-400 text-white">
+              <User size={18} className="sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-xs sm:text-sm">Teachers</p>
+              <p className="text-lg sm:text-2xl font-bold">0</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white p-3 sm:p-4 rounded-xl shadow">
+            <div className="p-2 sm:p-3 rounded-full bg-yellow-400 text-white">
+              <Calendar size={18} className="sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-xs sm:text-sm">Classes</p>
+              <p className="text-lg sm:text-2xl font-bold">0</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white p-3 sm:p-4 rounded-xl shadow">
+            <div className="p-2 sm:p-3 rounded-full bg-indigo-800 text-white">
+              <BookOpen size={18} className="sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <p className="text-gray-500 text-xs sm:text-sm">Subjects</p>
+              <p className="text-lg sm:text-2xl font-bold">0</p>
+            </div>
+          </div>
+        </div>
+
+{/* Main Content Area */}
+<div className="space-y-6">
+  {/* Performance Chart - Full width */}
+  <div className="bg-white p-4 rounded-xl shadow">
+  
+    <PerformanceChart />
+  </div>
+
+  {/* Calendar and Finance Charts - Side by side */}
+  <div className="flex flex-col lg:flex-row gap-4">
+    {/* Left - Calendar */}
+    <div className="lg:w-1/3">
+      <DashboardCalendar />
+    </div>
+
+    {/* Right - Finance Bar Chart */}
+    <div className="lg:w-2/3 bg-white p-4 text-md rounded-xl shadow">
+      <h2 className="text-md font-poppins font-semibold mb-4">School Finance</h2>
+      <ResponsiveContainer width="100%" height={250}>
+        <BarChart
+          data={[
+            { day: "Mon", lastWeek: 50, thisWeek: 70 },
+            { day: "Tue", lastWeek: 40, thisWeek: 55 },
+            { day: "Wed", lastWeek: 35, thisWeek: 70 },
+            { day: "Thu", lastWeek: 60, thisWeek: 80 },
+            { day: "Fri", lastWeek: 45, thisWeek: 60 },
+          ]}
+          margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+          <XAxis dataKey="day" axisLine={false} tickLine={false} />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            ticks={[0, 20, 40, 60, 80, 100]}
+          />
+          <Tooltip />
+          <Legend verticalAlign="top" align="right" />
+          <Bar dataKey="lastWeek" name="Last Week" fill="#EF4444" barSize={20} radius={[10, 10, 0, 0]} />
+          <Bar dataKey="thisWeek" name="This Week" fill="#FACC15" barSize={20} radius={[10, 10, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+</div>
+        {/* Upcoming Events - Shows below on mobile */}
+        <div className="bg-white p-4 rounded-xl shadow mt-6 lg:hidden">
+          <h2 className="text-lg font-semibold mb-4">Upcoming Events</h2>
+          <div className="space-y-3">
+            {[1, 2].map((item) => (
+              <div key={item} className="flex items-center gap-3 p-2 border rounded-lg">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <Calendar size={16} className="text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Parent-Teacher Meeting</p>
+                  <p className="text-xs text-gray-500">Tomorrow, 10:00 AM</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      <RightPanel />
+    </div>
+  );
+}
