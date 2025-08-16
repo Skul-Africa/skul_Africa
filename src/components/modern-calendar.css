@@ -1,0 +1,86 @@
+/* Modern Calendar Styles */
+.modern-calendar {
+  border: none;
+  width: 100%;
+  font-family: inherit;
+}
+
+.modern-calendar .react-calendar__navigation {
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 1em;
+  padding: 0.5em 0;
+}
+
+.modern-calendar .react-calendar__navigation button {
+  color: #073B7F;
+  min-width: 44px;
+  background: none;
+  font-weight: 600;
+}
+
+.modern-calendar .react-calendar__navigation button:enabled:hover,
+.modern-calendar .react-calendar__navigation button:enabled:focus {
+  background-color: #e6f0fd;
+}
+
+.modern-calendar .react-calendar__month-view__weekdays {
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 0.75em;
+  color: #64748b;
+}
+
+.modern-calendar .react-calendar__tile {
+  padding: 0.75em 0.5em;
+  position: relative;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.modern-calendar .react-calendar__tile:enabled:hover,
+.modern-calendar .react-calendar__tile:enabled:focus {
+  background: #f1f5f9;
+}
+
+.modern-calendar .react-calendar__tile--now {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.modern-calendar .react-calendar__tile--active {
+  background: #073B7F;
+  color: white;
+}
+
+/* Event dots */
+.event-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-top: 2px;
+}
+
+.event-dot.meeting {
+  background-color: #3b82f6; /* Blue */
+}
+
+.event-dot.exam {
+  background-color: #ef4444; /* Red */
+}
+
+.event-dot.holiday {
+  background-color: #10b981; /* Green */
+}
+
+/* Highlight event days */
+.react-calendar__tile--hasActive {
+  background: #f8fafc;
+}
+
+.react-calendar__tile--hasActive:enabled:hover,
+.react-calendar__tile--hasActive:enabled:focus {
+  background: #f1f5f9;
+}
