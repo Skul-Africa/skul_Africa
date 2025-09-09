@@ -89,7 +89,7 @@ export default function EduCentralLanding() {
         
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex space-x-8">
-          {['Courses', 'Programs', 'Resources', 'Community', 'About'].map((item) => (
+          {['Courses', 'Programs', 'Resources', 'Community', 'About', 'FAQ'].map((item) => (
             <button
               key={item}
               className={`px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
@@ -163,7 +163,7 @@ export default function EduCentralLanding() {
             : 'bg-white/90 border border-blue-200'
         }`}>
           <nav className="flex flex-col p-6 space-y-4">
-            {['Courses', 'Programs', 'Resources', 'Community', 'About'].map((item) => (
+            {['Courses', 'Programs', 'Resources', 'Community', 'About', 'FAQ'].map((item) => (
               <button
                 key={item}
                 className={`px-4 py-3 rounded-xl text-left transition-all duration-300 ${
