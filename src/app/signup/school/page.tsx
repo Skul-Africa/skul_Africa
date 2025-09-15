@@ -120,7 +120,7 @@ const SchoolSignupPage = () => {
       
       // Redirect to school dashboard after successful registration
       setTimeout(() => {
-        router.push('/school/dashboard'); // Adjust route as needed
+        router.push('/dashboard/school');
       }, 3000);
       
     } catch (err) {

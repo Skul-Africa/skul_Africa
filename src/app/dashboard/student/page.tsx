@@ -81,12 +81,12 @@ const getAuthToken = () => {
     for (const key of possibleKeys) {
       const token = localStorage.getItem(key)
       if (token) {
-        console.log("[v0] Found token with key:", key, "Length:", token.length)
+        console.log("Found token with key:", key, "Length:", token.length)
         return token
       }
     }
 
-    console.log("[v0] No token found in localStorage. Available keys:", Object.keys(localStorage))
+    console.log("No token found in localStorage. Available keys:", Object.keys(localStorage))
     return null
   }
   return null
@@ -96,7 +96,7 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const token = getAuthToken()
   const url = `${API_BASE_URL}${endpoint}`
 
-  console.log("[v0] API Request:", { endpoint, hasToken: !!token, tokenLength: token?.length })
+  console.log(" API Request:", { endpoint, hasToken: !!token, tokenLength: token?.length })
 
   const config: RequestInit = {
     ...options,
@@ -111,8 +111,18 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
 
   if (!response.ok) {
     if (response.status === 401) {
-      console.log("[v0] Authentication failed - token may be invalid or expired")
-      throw new Error(`Authentication failed! Please check your login token. Status: ${response.status}`)
+      console.log("Authentication failed - token may be invalid or expired")
+      // Clear expired token
+      localStorage.removeItem("school_token")
+      localStorage.removeItem("token")
+      localStorage.removeItem("authToken")
+      localStorage.removeItem("access_token")
+      localStorage.removeItem("auth_token")
+
+      // Show alert and redirect to login
+      alert("Your session has expired. Please login again.")
+      window.location.href = "/login_select"
+      throw new Error(`Session expired. Please login again.`)
     }
     throw new Error(`HTTP error! status: ${response.status}`)
   }
@@ -154,6 +164,40 @@ const deleteStudent = async (id: number) => {
 
 const fetchSchool = async () => {
   return apiRequest("/api/v1/school/me")
+}
+
+// Offline data management functions
+const saveStudentsToLocalStorage = (students: Student[], schoolId?: number) => {
+  try {
+    const dataToSave = {
+      students,
+      schoolId,
+      lastUpdated: Date.now(),
+      version: '1.0'
+    }
+    localStorage.setItem('school_students_data', JSON.stringify(dataToSave))
+    console.log('Students data saved to localStorage:', students.length, 'students')
+  } catch (error) {
+    console.error('Error saving students to localStorage:', error)
+  }
+}
+
+const loadStudentsFromLocalStorage = (): { students: Student[], schoolId?: number, lastUpdated?: number } | null => {
+  try {
+    const data = localStorage.getItem('school_students_data')
+    if (data) {
+      const parsedData = JSON.parse(data)
+      console.log('Students data loaded from localStorage:', parsedData.students?.length || 0, 'students')
+      return parsedData
+    }
+  } catch (error) {
+    console.error('Error loading students from localStorage:', error)
+  }
+  return null
+}
+
+const isOnline = () => {
+  return typeof navigator !== 'undefined' && navigator.onLine
 }
 
 function AddStudentModal({
@@ -562,131 +606,9 @@ function EditStudentModal({
   )
 }
 
-function Sidebar({
-  isMobileMenuOpen,
-  setIsMobileMenuOpen,
-}: {
-  isMobileMenuOpen: boolean
-  setIsMobileMenuOpen: (open: boolean) => void
-}) {
-  return (
-    <aside
-      className={`flex flex-col justify-between bg-[#073B7F] text-white w-16 sm:w-48 h-screen fixed left-0 top-0 transition-all duration-300 z-40
-      ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"}`}
-    >
-      {/* Mobile menu toggle */}
-      <button className="sm:hidden absolute right-2 top-2 p-1" onClick={() => setIsMobileMenuOpen(false)}>
-        <Menu size={24} className="text-white" />
-      </button>
 
-      {/* Logo */}
-      <div>
-        <h2
-          className={`${poppins.className} flex items-center justify-center gap-3 text-lg sm:text-2xl font-semibold py-6`}
-        >
-          <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center">
-            <Image src="/logo.png" alt="Skul Africa Logo" width={28} height={28} priority />
-          </div>
-          <span className="hidden sm:inline">Skul Africa</span>
-        </h2>
-
-        {/* Menu */}
-        <nav>
-          <ul className="space-y-1">
-            <li className="flex items-center justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
-              <Home size={18} />
-              <span className="hidden sm:inline text-sm">Dashboard</span>
-            </li>
-            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 bg-white rounded-l-full text-[#073B7F] cursor-pointer">
-              <Users size={18} />
-              <span className="hidden sm:inline text-sm font-medium">Students</span>
-            </li>
-            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
-              <User size={18} />
-              <span className="hidden sm:inline text-sm">Teachers</span>
-            </li>
-            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
-              <Calendar size={18} />
-              <span className="hidden sm:inline text-sm">Classes</span>
-            </li>
-            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
-              <BookOpen size={18} />
-              <span className="hidden sm:inline text-sm">Subjects</span>
-            </li>
-            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
-              <Calendar size={18} />
-              <span className="hidden sm:inline text-sm">Events</span>
-            </li>
-            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
-              <Settings size={18} />
-              <span className="hidden sm:inline text-sm">Settings</span>
-            </li>
-            <li className="flex items-center hover:rounded-l-full justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 hover:bg-white/10 cursor-pointer">
-              <Newspaper size={18} />
-              <span className="hidden sm:inline text-sm">News & Updates</span>
-            </li>
-          </ul>
-        </nav>
-      </div>
-
-      {/* User & Logout */}
-      <div className="p-3 sm:p-4">
-        <div className="flex items-center justify-center sm:justify-start gap-0 sm:gap-3 mb-3">
-          <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-sm">C</span>
-          </div>
-          <div className="hidden sm:block">
-            <p className="font-semibold text-sm">Code Flex</p>
-            <p className="text-xs opacity-75">Admin</p>
-          </div>
-        </div>
-        <button className="flex items-center justify-center sm:justify-center gap-2 hover:bg-white border hover:text-[#073B7F] bg-[#073B7F] border-white text-white w-full py-1.5 rounded-full font-semibold text-sm">
-          <LogOut size={16} />
-          <span className="hidden sm:inline">Logout</span>
-        </button>
-      </div>
-    </aside>
-  )
-}
-
-function RightPanel({ students }: { students: Student[] }) {
-  // Extract school profile picture from first student's school data
-  const schoolProfilePicture = students.length > 0 ? students[0].school?.profilePicture : null
-
-  return (
-    <aside className="hidden lg:flex fixed right-0 top-0 w-16 h-screen bg-white border-l border-gray-200 flex-col items-center py-6 gap-6">
-      {/* Profile Avatar */}
-      <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-        {schoolProfilePicture ? (
-          <img
-            src={schoolProfilePicture || "/placeholder.svg"}
-            alt="School Profile"
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-blue-600 flex items-center justify-center">
-            <span className="text-white font-semibold text-lg">
-              {students.length > 0 && students[0].school?.name ? students[0].school.name.charAt(0).toUpperCase() : "S"}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Settings Icon */}
-      <button className="p-3 hover:bg-gray-100 rounded-lg transition-colors">
-        <Settings size={20} className="text-gray-600" />
-      </button>
-
-      {/* Notification Bell */}
-      <button className="p-3 hover:bg-gray-100 rounded-lg transition-colors">
-        <Bell size={20} className="text-gray-600" />
-      </button>
-    </aside>
-  )
-}
 
 export default function StudentsPage() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [students, setStudents] = useState<Student[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -699,116 +621,116 @@ export default function StudentsPage() {
 
   const loadSchool = async () => {
     try {
-      console.log("[v0] Loading school data...")
+      console.log("Loading school data...")
       const schoolData = await fetchSchool()
-      console.log("[v0] School data loaded:", schoolData)
+      console.log("School data loaded:", schoolData)
       setCurrentSchool({ id: schoolData.id, name: schoolData.name })
       return schoolData.id
     } catch (err) {
-      console.error("[v0] Error fetching school:", err)
+      console.error("Error fetching school:", err)
       if (err instanceof Error && err.message.includes("Authentication failed")) {
-        console.log("[v0] Authentication failed - will show all students")
+        console.log("Authentication failed - will show all students")
       }
       return null
     }
   }
 
   const loadStudents = async () => {
+    console.log("[Students] Starting loadStudents function")
+
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      console.log("[Students] Load timeout reached, forcing completion")
+      setIsLoading(false)
+      if (students.length === 0) {
+        setError("Loading took too long. Please refresh the page or check your connection.")
+      }
+    }, 10000) // 10 second timeout
+
     try {
       setIsLoading(true)
-      console.log("[v0] Starting to load students...")
+      console.log("[Students] Starting to load students...")
 
-      const schoolId = await loadSchool()
-
-      const response = await fetchStudents()
-      console.log("[v0] API Response:", response)
-
-      const studentsData = Array.isArray(response) ? response : []
-
-      if (schoolId) {
-        const filteredStudents = studentsData.filter((student) => student.school?.id === schoolId)
-        console.log("[v0] Filtered students by school ID:", schoolId, "Count:", filteredStudents.length)
-        setStudents(filteredStudents)
-      } else {
-        console.log("[v0] No school filtering - showing all students:", studentsData.length)
-        setStudents(studentsData)
+      // First, try to load from localStorage
+      const localData = loadStudentsFromLocalStorage()
+      if (localData && localData.students) {
+        console.log("[Students] Loading students from localStorage:", localData.students.length, "students")
+        setStudents(localData.students)
+        setCurrentSchool(localData.schoolId ? { id: localData.schoolId, name: 'School' } : null)
+        setError("")
       }
 
-      console.log("[v0] Students loaded successfully:", studentsData.length)
-      setError("")
-    } catch (err) {
-      console.error("[v0] Error fetching students:", err)
-      const mockStudents = [
-        {
-          id: 1,
-          fullName: "Code Flexignia",
-          pendingClassName: "Grade 7",
-          role: "STUDENT",
-          email: "code@example.com",
-          phone: "+234",
-          accessCode: "AC-1",
-          profileCode: "CF-1",
-          classroomId: null,
-          school: {
-            id: 35,
-            name: "Gracefield Academy",
-            address: "1238 Palm Street, Abuja, Nigeria",
-            role: "PROPRITOR",
-            email: "school0000@gmail.com",
-            phone: "+2347011122999",
-            website: null,
-            isActive: true,
-            accessCode: "09D698",
-            profileCode: "1332",
-            profilePicture: null,
-            coverPicture: null,
-          },
-          user: null,
-        },
-        {
-          id: 2,
-          fullName: "Victoria Code",
-          pendingClassName: null,
-          role: "STUDENT",
-          email: "victoria@example.com",
-          phone: "+234",
-          accessCode: "AC-2",
-          profileCode: "VC-2",
-          classroomId: 1,
-          school: {
-            id: 35,
-            name: "Gracefield Academy",
-            address: "1238 Palm Street, Abuja, Nigeria",
-            role: "PROPRITOR",
-            email: "school0000@gmail.com",
-            phone: "+2347011122999",
-            website: null,
-            isActive: true,
-            accessCode: "09D698",
-            profileCode: "1332",
-            profilePicture: null,
-            coverPicture: null,
-          },
-          user: null,
-        },
-      ]
+      // If online, try to fetch fresh data from API
+      if (isOnline()) {
+        console.log("[Students] Online - attempting to fetch fresh data from API...")
+        try {
+          const schoolId = await loadSchool()
+          console.log("[Students] School ID obtained:", schoolId)
 
-      setStudents(mockStudents)
-      setCurrentSchool({ id: 35, name: "Gracefield Academy" })
-      console.log("[v0] Set mock students:", mockStudents.length)
+          const response = await fetchStudents()
+          console.log("[Students] API Response received:", response)
+
+          const studentsData = Array.isArray(response) ? response : []
+          console.log("[Students] Students data array:", studentsData.length, "items")
+
+          let filteredStudents: Student[] = []
+          if (schoolId) {
+            filteredStudents = studentsData.filter((student) => student.school?.id === schoolId)
+            console.log("[Students] Filtered students by school ID:", schoolId, "Count:", filteredStudents.length)
+          } else {
+            filteredStudents = studentsData
+            console.log("[Students] No school filtering - showing all students:", studentsData.length)
+          }
+
+          // Update state with fresh data
+          setStudents(filteredStudents)
+          setCurrentSchool(schoolId ? { id: schoolId, name: 'School' } : null)
+
+          // Save fresh data to localStorage
+          saveStudentsToLocalStorage(filteredStudents, schoolId)
+
+          console.log("[Students] Students loaded successfully from API:", filteredStudents.length)
+          setError("")
+        } catch (apiError) {
+          console.error("[Students] API fetch failed, using localStorage data:", apiError)
+          // Keep localStorage data if API fails
+          if (!localData) {
+            setStudents([])
+            if (apiError instanceof Error && apiError.message.includes("Authentication failed")) {
+              setError("Authentication failed. Please login as a school administrator to access student data.")
+            } else if (apiError instanceof Error && apiError.message.includes("Session expired")) {
+              setError("Your session has expired. Please login again.")
+            } else {
+              setError("Failed to load students from server. Using cached data if available.")
+            }
+          }
+        }
+      } else {
+        console.log("[Students] Offline - using localStorage data only")
+        if (!localData) {
+          setError("No internet connection and no cached data available. Please connect to the internet and try again.")
+        }
+      }
+    } catch (err) {
+      console.error("[Students] Error in loadStudents:", err)
+      setStudents([])
 
       if (err instanceof Error && err.message.includes("Authentication failed")) {
-        setError("No authentication token found. Please login to access live data. Showing sample data for now.")
+        setError("Authentication failed. Please login as a school administrator to access student data.")
+      } else if (err instanceof Error && err.message.includes("Session expired")) {
+        setError("Your session has expired. Please login again.")
       } else {
-        setError("Failed to load students from server. Showing sample data for now.")
+        setError("Failed to load students. Please try again later.")
       }
     } finally {
+      clearTimeout(timeout)
       setIsLoading(false)
-      console.log("[v0] Loading completed")
+      console.log("[Students] Loading completed")
     }
   }
 
   useEffect(() => {
+    console.log("[Students] Component mounted, calling loadStudents")
     loadStudents()
   }, [])
 
@@ -877,29 +799,31 @@ export default function StudentsPage() {
     loadStudents()
   }
 
+  // Function to clear cached data (useful for manual refresh)
+  const clearCachedData = () => {
+    try {
+      localStorage.removeItem('school_students_data')
+      console.log('Cached student data cleared')
+    } catch (error) {
+      console.error('Error clearing cached data:', error)
+    }
+  }
+
   if (isLoading) {
     return (
-      <div className={`${poppins.className} flex items-center justify-center min-h-screen bg-gray-50`}>
+      <div className={`${poppins.className} flex items-center justify-center min-h-screen bg-[#DDE5FF]`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#073B7F] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading students...</p>
+          <p className="text-xs text-gray-500 mt-2">If this takes too long, try refreshing the page</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className={`${poppins.className} flex flex-col sm:flex-row bg-gray-50 min-h-screen`}>
-      <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
-
-      <button
-        className="sm:hidden fixed left-2 top-2 z-30 p-2 bg-[#073B7F] text-white rounded-md"
-        onClick={() => setIsMobileMenuOpen(true)}
-      >
-        <Menu size={20} />
-      </button>
-
-      <main className="ml-0 sm:ml-48 flex-1 lg:mr-16 p-4 sm:p-6" style={{ backgroundColor: "#DDE5FF" }}>
+    <div className={`${poppins.className} bg-[#DDE5FF] min-h-screen`}>
+      <div className="p-4 sm:p-6">
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 sm:gap-0">
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Your Students</h1>
@@ -1022,10 +946,7 @@ export default function StudentsPage() {
             </button>
           </div>
         </div>
-      </main>
-
-      {/* Right Panel */}
-      <RightPanel students={students} />
+      </div>
 
       <AddStudentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onStudentAdded={handleStudentAdded} />
       <ViewStudentModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} student={selectedStudent} />

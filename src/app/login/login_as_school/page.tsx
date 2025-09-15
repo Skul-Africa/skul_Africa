@@ -105,9 +105,9 @@ const schoolAccessPage = () => {
       
       setSuccess(response.message || 'Login successful! Redirecting...');
       
-      // Redirect to dashboard after successful login
+      // Redirect to school dashboard after successful login
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/dashboard/school');
       }, 1500);
       
     } catch (err) {
