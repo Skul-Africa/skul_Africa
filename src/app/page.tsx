@@ -91,7 +91,7 @@ export default function EduCentralLanding() {
         
 
 
-
+{/* Desktop Navigation */}
 <nav className="hidden lg:flex space-x-8">
   {[
     { name: 'Courses', href: '/courses' },
@@ -167,26 +167,35 @@ export default function EduCentralLanding() {
       </header>
 
       {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className={`lg:hidden fixed inset-x-0 top-20 z-50 mx-4 rounded-2xl shadow-2xl backdrop-blur-lg ${
-          isDarkMode 
-            ? 'bg-slate-900/90 border border-white/20' 
-            : 'bg-white/90 border border-blue-200'
-        }`}>
-          <nav className="flex flex-col p-6 space-y-4">
-            {['Courses', 'Programs', 'Resources', 'Community', 'About', 'FAQ'].map((item) => (
-              <button
-                key={item}
-                className={`px-4 py-3 rounded-xl text-left transition-all duration-300 ${
-                  isDarkMode 
-                    ? 'hover:bg-white/10' 
-                    : 'hover:bg-blue-100'
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {item}
-              </button>
-            ))}
+     {isMobileMenuOpen && (
+  <div
+    className={`lg:hidden fixed inset-x-0 top-20 z-50 mx-4 rounded-2xl shadow-2xl backdrop-blur-lg ${
+      isDarkMode
+        ? 'bg-slate-900/90 border border-white/20'
+        : 'bg-white/90 border border-blue-200'
+    }`}
+  >
+    <nav className="flex flex-col p-6 space-y-4">
+      {[
+        { name: 'Courses', href: '/courses' },
+        { name: 'Programs', href: '/programs' },
+        { name: 'Resources', href: '/resources' },
+        { name: 'Community', href: '/community' },
+        { name: 'About', href: '/about' },
+        { name: 'FAQ', href: '/faq' },
+      ].map(({ name, href }) => (
+        <Link
+          key={name}
+          href={href}
+          onClick={() => setIsMobileMenuOpen(false)} 
+          className={`px-4 py-3 rounded-xl text-left transition-all duration-300 block ${
+            isDarkMode ? 'hover:bg-white/10' : 'hover:bg-blue-100'
+          }`}
+        >
+          {name}
+        </Link>
+      ))}
+
             <div className="flex flex-col space-y-3 pt-4 border-t border-white/20">
               <button 
                 onClick={() => {
