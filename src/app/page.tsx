@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Star, BookOpen, GraduationCap, Users, Award, PlayCircle, Clock, Calendar, Moon, Sun, ChevronRight, Target, Lightbulb, Menu, X, LogIn, UserPlus } from 'lucide-react';
+       
+       import Link from 'next/link';
 
 export default function EduCentralLanding() {
   const [currentStudents, setCurrentStudents] = useState(1247);
@@ -87,21 +89,30 @@ export default function EduCentralLanding() {
           <span className="text-lg sm:text-xl font-bold">skul Africa</span>
         </div>
         
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex space-x-8">
-          {['Courses', 'Programs', 'Resources', 'Community', 'About', 'FAQ'].map((item) => (
-            <button
-              key={item}
-              className={`px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
-                isDarkMode 
-                  ? 'hover:bg-white/10' 
-                  : 'hover:bg-blue-100'
-              }`}
-            >
-              {item}
-            </button>
-          ))}
-        </nav>
+
+
+
+<nav className="hidden lg:flex space-x-8">
+  {[
+    { name: 'Courses', href: '/courses' },
+    { name: 'Programs', href: '/programs' },
+    { name: 'Resources', href: '/resources' },
+    { name: 'Community', href: '/community' },
+    { name: 'About', href: '/about' },
+    { name: 'FAQ', href: '/faq' },
+  ].map(({ name, href }) => (
+    <Link
+      key={name}
+      href={href}
+      className={`px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
+        isDarkMode ? 'hover:bg-white/10' : 'hover:bg-blue-100'
+      }`}
+    >
+      {name}
+    </Link>
+  ))}
+</nav>
+
 
         <div className="flex items-center space-x-2 sm:space-x-4">
           <button
