@@ -2,15 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { Star, BookOpen, GraduationCap, Users, Award, PlayCircle, Clock, Calendar, Moon, Sun, ChevronRight, Target, Lightbulb, Menu, X, LogIn, UserPlus } from 'lucide-react';
-       
+     import { usePathname } from "next/navigation";
        import Link from 'next/link';
+     
 
 export default function EduCentralLanding() {
   const [currentStudents, setCurrentStudents] = useState(1247);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  const pathname = usePathname();
   useEffect(() => {
     const interval = setInterval(() => {
       setIsAnimating(true);
@@ -91,28 +92,33 @@ export default function EduCentralLanding() {
         
 
 
-{/* Desktop Navigation */}
 <nav className="hidden lg:flex space-x-8">
   {[
-    { name: 'Courses', href: '/courses' },
-    { name: 'Programs', href: '/programs' },
-    { name: 'Resources', href: '/resources' },
-    { name: 'Community', href: '/community' },
-    { name: 'About', href: '/about' },
-    { name: 'FAQ', href: '/faq' },
-  ].map(({ name, href }) => (
+  { name: 'Courses', href: '/courses' },
+  { name: 'Programs', href: '/programs' },
+  { name: 'Resources', href: '/resources' },
+  { name: 'Community', href: '/community' },
+  { name: 'About', href: '/about' },
+  { name: 'FAQ', href: '/faq' },
+].map(({ name, href }) => {
+  const isActive = pathname === href;
+  return (
     <Link
       key={name}
       href={href}
       className={`px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
-        isDarkMode ? 'hover:bg-white/10' : 'hover:bg-blue-100'
+        isActive
+          ? 'bg-white text-slate-900 font-semibold' // 👈 pure white when active
+          : isDarkMode
+          ? 'hover:bg-white/10 text-white'
+          : 'hover:bg-blue-100 text-slate-700'
       }`}
     >
       {name}
     </Link>
-  ))}
+  );
+})}
 </nav>
-
 
         <div className="flex items-center space-x-2 sm:space-x-4">
           <button
@@ -175,26 +181,34 @@ export default function EduCentralLanding() {
         : 'bg-white/90 border border-blue-200'
     }`}
   >
-    <nav className="flex flex-col p-6 space-y-4">
-      {[
-        { name: 'Courses', href: '/courses' },
-        { name: 'Programs', href: '/programs' },
-        { name: 'Resources', href: '/resources' },
-        { name: 'Community', href: '/community' },
-        { name: 'About', href: '/about' },
-        { name: 'FAQ', href: '/faq' },
-      ].map(({ name, href }) => (
-        <Link
-          key={name}
-          href={href}
-          onClick={() => setIsMobileMenuOpen(false)} 
-          className={`px-4 py-3 rounded-xl text-left transition-all duration-300 block ${
-            isDarkMode ? 'hover:bg-white/10' : 'hover:bg-blue-100'
-          }`}
-        >
-          {name}
-        </Link>
-      ))}
+     <nav className="flex flex-col p-6 space-y-4">
+     {[
+  { name: "Courses", href: "/courses" },
+  { name: "Programs", href: "/programs" },
+  { name: "Resources", href: "/resources" },
+  { name: "Community", href: "/community" },
+  { name: "About", href: "/about" },
+  { name: "FAQ", href: "/faq" },
+].map(({ name, href }) => {
+  const isActive = pathname === href;
+  return (
+    <Link
+      key={name}
+      href={href}
+      onClick={() => setIsMobileMenuOpen(false)}
+      className={`px-4 py-3 rounded-xl text-left transition-all duration-300 block ${
+        isActive
+          ? 'bg-white text-slate-900 font-semibold' // 👈 pure white when active
+          : isDarkMode
+          ? 'hover:bg-white/10 text-white'
+          : 'hover:bg-blue-100 text-slate-700'
+      }`}
+    >
+      {name}
+    </Link>
+  );
+})}
+
 
             <div className="flex flex-col space-y-3 pt-4 border-t border-white/20">
               <button 
