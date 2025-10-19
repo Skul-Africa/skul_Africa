@@ -1,3 +1,7 @@
-export default function Page() {
-  return <div className="p-10 text-center text-3xl">This is the [PageName] page</div>;
+'use client';
+
+import CoursesClient from '@/components/CoursesClient';
+
+export default function CoursesPage() {
+  return <CoursesClient />;
 }
