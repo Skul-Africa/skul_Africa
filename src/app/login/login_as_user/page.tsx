@@ -164,7 +164,7 @@ const LoginPage = () => {
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-12 h-12 mb-3">
                 <Image
-                  src="/logo.png"
+                  src="/icon.png"
                   alt="Logo"
                   width={48}
                   height={48}
@@ -201,7 +201,7 @@ const LoginPage = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg 
                            focus:outline-none focus:ring-2 focus:ring-blue-500 
-                           focus:border-transparent bg-white placeholder-gray-500 
+                           focus:border-transparent bg-white placeholder-black text-black
                            text-base transition-colors"
                   placeholder="Email"
                   required
@@ -219,7 +219,7 @@ const LoginPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg 
                            focus:outline-none focus:ring-2 focus:ring-blue-500 
-                           focus:border-transparent bg-white placeholder-gray-500 
+                           focus:border-transparent bg-white placeholder-black text-black
                            text-base transition-colors"
                   placeholder="Password"
                   required
@@ -364,7 +364,7 @@ const LoginPage = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg 
                              focus:outline-none focus:ring-2 focus:ring-blue-500 
-                             focus:border-transparent bg-white/90 placeholder-gray-500 
+                             focus:border-transparent bg-white/90 placeholder-black text-black
                              text-sm transition-colors"
                     placeholder="Password"
                     required

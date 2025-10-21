@@ -34,10 +34,10 @@ const schoolAccessPage = () => {
       // Save to localStorage for persistence across browser sessions
       localStorage.setItem('school_token', token);
       localStorage.setItem('school_token_timestamp', Date.now().toString());
-      
+
       // Also save to sessionStorage as backup
       sessionStorage.setItem('school_token', token);
-      
+
       console.log('Tokens saved successfully');
     } catch (error) {
       console.error('Error saving tokens:', error);
@@ -99,21 +99,21 @@ const schoolAccessPage = () => {
       };
 
       const response = await handleLogin(loginData);
-      
+
       // Save tokens securely
       saveTokens(response.token);
-      
+
       setSuccess(response.message || 'Login successful! Redirecting...');
-      
+
       // Redirect to school dashboard after successful login
       setTimeout(() => {
         router.push('/dashboard/school');
       }, 1500);
-      
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
       setError(errorMessage);
-      
+
       // Clear any existing tokens on failed login
       clearTokens();
     } finally {
@@ -157,7 +157,7 @@ const schoolAccessPage = () => {
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-12 h-12 mb-3">
                 <Image
-                  src="/logo.png"
+                  src="/icon.png"
                   alt="Logo"
                   width={48}
                   height={48}
@@ -192,10 +192,13 @@ const schoolAccessPage = () => {
                   type="text"
                   value={accessCode}
                   onChange={(e) => setAccessCode(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg 
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 
-                           focus:border-transparent bg-white placeholder-gray-500 
-                           text-base transition-colors"
+                 className="w-full px-4 py-3 border border-gray-300 rounded-lg 
+           bg-white text-black placeholder-black text-base
+           focus:outline-none focus:ring-2 focus:ring-blue-500 
+           focus:border-transparent transition-colors duration-300
+           placeholder:text-black focus:placeholder:text-black"
+
+
                   placeholder="Access Code"
                   required
                   disabled={isLoading}
@@ -212,7 +215,8 @@ const schoolAccessPage = () => {
                   onChange={(e) => setProfileCode(e.target.value)}
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg 
                            focus:outline-none focus:ring-2 focus:ring-blue-500 
-                           focus:border-transparent bg-white placeholder-gray-500 
+                           focus:border-transparent bg-white placeholder-black text-black
+
                            text-base transition-colors"
                   placeholder="Profile Code"
                   required
@@ -237,7 +241,7 @@ const schoolAccessPage = () => {
                     id="remember"
                     type="checkbox"
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 
-                             border-gray-300 rounded"
+                             border-gray-300 rounded placeholder-black text-black"
                     disabled={isLoading}
                   />
                   <label htmlFor="remember" className="ml-2 block text-sm text-gray-700">
@@ -262,12 +266,12 @@ const schoolAccessPage = () => {
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" 
-                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" 
-                              stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" 
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10"
+                        stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     ACCESSING...
                   </span>
@@ -357,7 +361,7 @@ const schoolAccessPage = () => {
                     onChange={(e) => setProfileCode(e.target.value)}
                     className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg 
                              focus:outline-none focus:ring-2 focus:ring-blue-500 
-                             focus:border-transparent bg-white/90 placeholder-gray-500 
+                             focus:border-transparent bg-white/90 placeholder-black text-black
                              text-sm transition-colors"
                     placeholder="Profile Code"
                     required
@@ -382,7 +386,7 @@ const schoolAccessPage = () => {
                       id="remember-desktop"
                       type="checkbox"
                       className="h-3 w-3 text-blue-600 focus:ring-blue-500 
-                               border-gray-300 rounded"
+                               border-gray-300 rounded placeholder-black text-black"
                       disabled={isLoading}
                     />
                     <label htmlFor="remember-desktop" className="ml-2 block text-xs text-gray-700">
@@ -407,12 +411,12 @@ const schoolAccessPage = () => {
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" 
-                           xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" 
-                                stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" 
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10"
+                          stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                       ACCESSING...
                     </span>
