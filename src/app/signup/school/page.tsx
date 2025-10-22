@@ -168,7 +168,7 @@ const SchoolSignupPage = () => {
               <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                   <Image
-                    src="/icon.png"
+                    src="/logo.png"
                     alt="Logo"
                     width={48}
                     height={48}

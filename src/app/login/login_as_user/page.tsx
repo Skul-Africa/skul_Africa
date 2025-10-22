@@ -164,7 +164,7 @@ const LoginPage = () => {
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-12 h-12 mb-3">
                 <Image
-                  src="/icon.png"
+                  src="/logo.png"
                   alt="Logo"
                   width={48}
                   height={48}

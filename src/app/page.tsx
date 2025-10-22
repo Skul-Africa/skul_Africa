@@ -67,7 +67,7 @@ export default function EduCentralLanding(): JSX.Element {
       title: "Real Impact",
       text: "Improved attendance, engaged teachers, and communities empowered through learning.",
       img:
-        "children in group comming back.jpg",
+        "a child.jpg",
     },
      {
       key: "join us",
@@ -313,16 +313,6 @@ export default function EduCentralLanding(): JSX.Element {
               className="px-6 py-3 rounded-full font-semibold bg-blue-400 text-blue-900 shadow"
             >
               Sign Up
-            </button>
-
-            <button
-              onClick={handleGoHome}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-full font-semibold text-sm transition transform hover:scale-105 shadow ${
-                isDarkMode ? "bg-blue-400 text-blue-900" : "bg-blue-600 text-white"
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" />
-              <span>Go Home</span>
             </button>
           </div>
         </div>

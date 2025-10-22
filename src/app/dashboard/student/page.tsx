@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react"
 
+
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
@@ -72,6 +73,7 @@ interface CreateStudentData {
   className: string
 }
 
+
 const API_BASE_URL = "https://skul-africa.onrender.com"
 
 const getAuthToken = () => {
@@ -96,7 +98,14 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const token = getAuthToken()
   const url = `${API_BASE_URL}${endpoint}`
 
-  console.log(" API Request:", { endpoint, hasToken: !!token, tokenLength: token?.length })
+  console.log("API Request:", { endpoint, hasToken: !!token, tokenLength: token?.length })
+  if (options.body) {
+    try {
+      console.log("Request Body:", JSON.parse(options.body as string))
+    } catch {
+      console.log("Request Body (raw):", options.body)
+    }
+  }
 
   const config: RequestInit = {
     ...options,
@@ -110,25 +119,33 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const response = await fetch(url, config)
 
   if (!response.ok) {
+    // Try to log the error body from backend
+    let errorBody: any
+    try {
+      errorBody = await response.json()
+    } catch {
+      errorBody = await response.text()
+    }
+    console.error("API Error Response Body:", errorBody)
+
     if (response.status === 401) {
       console.log("Authentication failed - token may be invalid or expired")
-      // Clear expired token
       localStorage.removeItem("school_token")
       localStorage.removeItem("token")
       localStorage.removeItem("authToken")
       localStorage.removeItem("access_token")
       localStorage.removeItem("auth_token")
-
-      // Show alert and redirect to login
       alert("Your session has expired. Please login again.")
       window.location.href = "/login_select"
       throw new Error(`Session expired. Please login again.`)
     }
+
     throw new Error(`HTTP error! status: ${response.status}`)
   }
 
   return response.json()
 }
+
 
 const createStudent = async (studentData: CreateStudentData) => {
   return apiRequest("/api/v1/student/create", {
@@ -219,6 +236,17 @@ function AddStudentModal({
   const [error, setError] = useState("")
   const [classrooms, setClassrooms] = useState<Classroom[]>([])
   const [classroomsLoading, setClassroomsLoading] = useState(false)
+
+
+  // Load theme from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme")
+    if (savedTheme === "dark") {
+      document.documentElement.classList.add("dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+    }
+  }, [])
 
   useEffect(() => {
     if (isOpen) {
@@ -410,9 +438,8 @@ function ViewStudentModal({
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-1">Status</label>
             <span
-              className={`inline-flex items-center px-3 py-1 rounded text-xs font-bold ${
-                student.classroomId ? "bg-green-600 text-white" : "bg-red-600 text-white"
-              }`}
+              className={`inline-flex items-center px-3 py-1 rounded text-xs font-bold ${student.classroomId ? "bg-green-600 text-white" : "bg-red-600 text-white"
+                }`}
             >
               {student.classroomId ? "ENROLLED" : "PENDING"}
             </span>
@@ -822,22 +849,41 @@ export default function StudentsPage() {
   }
 
   return (
-    <div className={`${poppins.className} bg-[#DDE5FF] min-h-screen`}>
+    <div className={`${poppins.className} bg-[#DDE5FF] dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100`}>
       <div className="p-4 sm:p-6">
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 sm:gap-0">
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Your Students</h1>
-            <div className="relative w-full sm:w-auto">
-              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search here..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-sm placeholder-gray-400 w-full sm:w-64"
-              />
+
+            <div className="flex items-center gap-3">
+              {/* Search Bar */}
+              <div className="relative w-full sm:w-auto">
+                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search here..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-sm placeholder-gray-400 w-full sm:w-64"
+                />
+              </div>
+
+              {/* 🌙 / ☀️ Toggle */}
+              <button
+                onClick={() => {
+                  const html = document.documentElement
+                  const isDark = html.classList.toggle("dark")
+                  localStorage.setItem("theme", isDark ? "dark" : "light")
+                }}
+                className="p-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 transition-colors text-gray-600"
+                title="Toggle Dark Mode"
+              >
+                <span className="block dark:hidden">🌙</span>
+                <span className="hidden dark:block">☀️</span>
+              </button>
             </div>
           </div>
+
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 mt-4 bg-white px-2 py-3 rounded-3xl w-full gap-3 sm:gap-0">
             <p className="text-xs text-gray-600">
@@ -888,9 +934,8 @@ export default function StudentsPage() {
                     </td>
                     <td className="px-2 sm:px-4 py-3 bg-white text-center">
                       <span
-                        className={`inline-flex items-center px-2 sm:px-3 py-1 rounded text-xs font-bold ${
-                          student.classroomId ? "bg-green-600 text-white" : "bg-red-600 text-white"
-                        }`}
+                        className={`inline-flex items-center px-2 sm:px-3 py-1 rounded text-xs font-bold ${student.classroomId ? "bg-green-600 text-white" : "bg-red-600 text-white"
+                          }`}
                       >
                         {student.classroomId ? "ENROLLED" : "PENDING"}
                       </span>

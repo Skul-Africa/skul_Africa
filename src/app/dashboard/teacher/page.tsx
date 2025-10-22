@@ -39,13 +39,14 @@ interface Teacher {
     coverPicture: string | null
   }
   user: any
+  subject?: string
 }
 
 interface CreateTeacherData {
   fullName: string
   email: string
   phone: string
-  subject: string
+  subject?: string
 }
 
 const API_BASE_URL = "https://skul-africa.onrender.com"
@@ -74,6 +75,15 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
 
   console.log("[v0] API Request:", { endpoint, hasToken: !!token, tokenLength: token?.length })
 
+  // Log request body for debugging if present
+  if (options.body) {
+    try {
+      console.log("[v0] Request body:", JSON.parse(options.body as string))
+    } catch {
+      console.log("[v0] Request body (raw):", options.body)
+    }
+  }
+
   const config: RequestInit = {
     ...options,
     headers: {
@@ -86,32 +96,88 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const response = await fetch(url, config)
 
   if (!response.ok) {
+    // Try to read error body and log it
+    let errorBody: any = null
+    try {
+      errorBody = await response.json()
+    } catch {
+      try {
+        errorBody = await response.text()
+      } catch {
+        errorBody = null
+      }
+    }
+    console.error("[v0] Error Response Body:", errorBody)
+
+    // Load theme from localStorage
+    useEffect(() => {
+      const savedTheme = localStorage.getItem("theme")
+      if (savedTheme === "dark") {
+        document.documentElement.classList.add("dark")
+      } else {
+        document.documentElement.classList.remove("dark")
+      }
+    }, [])
+
     if (response.status === 401) {
-      console.log("[v0] Authentication failed - token may be invalid or expired")
-      // Clear expired token
+      console.warn("[v0] Authentication failed - token may be invalid or expired")
+
+      // Clear known token keys
       localStorage.removeItem("school_token")
       localStorage.removeItem("token")
       localStorage.removeItem("authToken")
       localStorage.removeItem("access_token")
       localStorage.removeItem("auth_token")
 
-      // Show alert and redirect to login
       alert("Your session has expired. Please login again.")
       window.location.href = "/login_select"
       throw new Error(`Session expired. Please login again.`)
     }
+
+    if (response.status === 404) {
+      throw new Error(`Resource not found. Check if the API endpoint is correct.`)
+    }
+
+    // Fallback error
     throw new Error(`HTTP error! status: ${response.status}`)
   }
 
   return response.json()
 }
 
-const createTeacher = async (teacherData: CreateTeacherData) => {
-  return apiRequest("/api/v1/teacher/create", {
+// NOTE: Backend mapping shows POST /api/v1/teacher (mapped in Nest logs).
+// We will send role: "TEACHER" if backend expects it or already handles role.
+const createTeacher = async (data: any) => {
+  const token = localStorage.getItem("school_token");
+  const endpoint = `${API_BASE_URL}/api/v1/teacher`;
+
+  console.log("[Teacher API] Sending request to:", endpoint);
+  console.log("[Teacher API] Payload:", data);
+
+  const res = await fetch(endpoint, {
     method: "POST",
-    body: JSON.stringify(teacherData),
-  })
-}
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      ...data,
+      role: "TEACHER", // ensure backend gets role
+    }),
+  });
+
+  // Log backend response status and body (for debugging)
+  console.log("[Teacher API] Response status:", res.status);
+  const text = await res.text();
+  console.log("[Teacher API] Raw response:", text);
+
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
+
+  return JSON.parse(text);
+};
+
 
 const fetchTeachers = async () => {
   return apiRequest("/api/v1/teacher")
@@ -191,22 +257,33 @@ function AddTeacherModal({
   const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
     try {
-      await createTeacher(formData)
-      setFormData({ fullName: "", email: "", phone: "", subject: "" })
-      onTeacherAdded()
-      onClose()
-    } catch (err) {
-      setError("Failed to create teacher. Please try again.")
-      console.error("Error creating teacher:", err)
+      // 🧠 Debug log — see exactly what is being sent
+      console.log("[Teacher API] Submitting teacher:", formData);
+
+      // Call the API to create a teacher
+      await createTeacher(formData);
+
+      // ✅ Reset form and close modal after success
+      setFormData({ fullName: "", email: "", phone: "", subject: "" });
+      onTeacherAdded();
+      onClose();
+    } catch (err: any) {
+      // 🧩 More detailed error reporting
+      console.error("[Teacher API] Error creating teacher:", err);
+
+      // Show a gentle temporary message instead of raw error
+      setError("Could not create teacher. Please check the fields and try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
+
+
 
   if (!isOpen) return null
 
@@ -263,11 +340,10 @@ function AddTeacherModal({
             <label className="block text-sm font-semibold text-gray-900 mb-1">Subject</label>
             <input
               type="text"
-              required
               value={formData.subject}
               onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-gray-900"
-              placeholder="Enter subject"
+              placeholder="Enter subject (optional)"
             />
           </div>
 
@@ -380,7 +456,7 @@ function EditTeacherModal({
         fullName: teacher.fullName,
         email: teacher.email,
         phone: teacher.phone,
-        subject: "", // This would need to be fetched from teacher data
+        subject: (teacher as any).subject || "",
       })
     }
   }, [isOpen, teacher])
@@ -456,7 +532,6 @@ function EditTeacherModal({
             <label className="block text-sm font-semibold text-gray-900 mb-1">Subject</label>
             <input
               type="text"
-              required
               value={formData.subject}
               onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-gray-900"
@@ -516,7 +591,6 @@ export default function TeachersPage() {
   const loadTeachers = async () => {
     console.log("[Teachers] Starting loadTeachers function")
 
-    // Add timeout to prevent infinite loading
     const timeout = setTimeout(() => {
       console.log("[Teachers] Load timeout reached, forcing completion")
       setIsLoading(false)
@@ -538,7 +612,6 @@ export default function TeachersPage() {
         setError("")
       }
 
-      // If online, try to fetch fresh data from API
       if (isOnline()) {
         console.log("[Teachers] Online - attempting to fetch fresh data from API...")
         try {
@@ -548,30 +621,27 @@ export default function TeachersPage() {
           const response = await fetchTeachers()
           console.log("[Teachers] API Response received:", response)
 
-          const teachersData = Array.isArray(response) ? response : []
+          const teachersData = Array.isArray(response) ? response : (response?.data || [])
           console.log("[Teachers] Teachers data array:", teachersData.length, "items")
 
           let filteredTeachers: Teacher[] = []
           if (schoolId) {
-            filteredTeachers = teachersData.filter((teacher) => teacher.school?.id === schoolId)
+            filteredTeachers = teachersData.filter((teacher: Teacher) => teacher.school?.id === schoolId)
             console.log("[Teachers] Filtered teachers by school ID:", schoolId, "Count:", filteredTeachers.length)
           } else {
             filteredTeachers = teachersData
             console.log("[Teachers] No school filtering - showing all teachers:", teachersData.length)
           }
 
-          // Update state with fresh data
           setTeachers(filteredTeachers)
           setCurrentSchool(schoolId ? { id: schoolId, name: 'School' } : null)
 
-          // Save fresh data to localStorage
           saveTeachersToLocalStorage(filteredTeachers, schoolId)
 
           console.log("[Teachers] Teachers loaded successfully from API:", filteredTeachers.length)
           setError("")
         } catch (apiError) {
           console.error("[Teachers] API fetch failed, using localStorage data:", apiError)
-          // Keep localStorage data if API fails
           if (!localData) {
             setTeachers([])
             if (apiError instanceof Error && apiError.message.includes("Authentication failed")) {
@@ -609,6 +679,7 @@ export default function TeachersPage() {
 
   useEffect(() => {
     loadTeachers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleViewTeacher = async (id: number) => {
@@ -619,7 +690,6 @@ export default function TeachersPage() {
       setIsViewModalOpen(true)
     } catch (err) {
       console.error("Error fetching teacher:", err)
-      // Fallback to local data if API fails
       const teacher = teachers.find((t) => t.id === id)
       if (teacher) {
         setSelectedTeacher(teacher)
@@ -638,7 +708,6 @@ export default function TeachersPage() {
       setIsEditModalOpen(true)
     } catch (err) {
       console.error("Error fetching teacher for edit:", err)
-      // Fallback to local data if API fails
       const teacher = teachers.find((t) => t.id === id)
       if (teacher) {
         setSelectedTeacher(teacher)
@@ -654,7 +723,7 @@ export default function TeachersPage() {
       try {
         await deleteTeacher(id)
         alert("Teacher deleted successfully")
-        loadTeachers() // Refresh the list
+        loadTeachers()
       } catch (err) {
         console.error("Error deleting teacher:", err)
         alert("Failed to delete teacher")
@@ -676,7 +745,6 @@ export default function TeachersPage() {
     loadTeachers()
   }
 
-  // Function to clear cached data (useful for manual refresh)
   const clearCachedData = () => {
     try {
       localStorage.removeItem('school_teachers_data')
@@ -698,34 +766,61 @@ export default function TeachersPage() {
   }
 
   return (
-    <div className={`${poppins.className} bg-[#DDE5FF] min-h-screen`}>
+    <div className={`${poppins.className} bg-[#DDE5FF] dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100`}>
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 sm:gap-0">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Your Teachers</h1>
-          <div className="relative w-full sm:w-auto">
-            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search here..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-sm placeholder-gray-400 w-full sm:w-64"
-            />
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Your Students</h1>
+
+          <div className="flex items-center gap-3">
+            {/* Search Bar */}
+            <div className="relative w-full sm:w-auto">
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search here..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-sm placeholder-gray-400 w-full sm:w-64"
+              />
+            </div>
+
+            {/* 🌙 / ☀️ Toggle */}
+            <button
+              onClick={() => {
+                const html = document.documentElement
+                const isDark = html.classList.toggle("dark")
+                localStorage.setItem("theme", isDark ? "dark" : "light")
+              }}
+              className="p-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 transition-colors text-gray-600"
+              title="Toggle Dark Mode"
+            >
+              <span className="block dark:hidden">🌙</span>
+              <span className="hidden dark:block">☀️</span>
+            </button>
           </div>
         </div>
+
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 mt-4 bg-white px-2 py-3 rounded-3xl w-full gap-3 sm:gap-0">
           <p className="text-xs text-gray-600">
             You have <span className="font-semibold text-[#073B7F]">{teachers.length} Teachers</span>
             {currentSchool && <span> at {currentSchool.name}</span>}...
           </p>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-3 py-1 bg-[#073B7F] text-white rounded-full text-xs font-medium hover:bg-[#062f66] transition-colors flex items-center gap-1 w-full sm:w-auto justify-center"
-          >
-            <span className="text-sm">+</span>
-            Add New Teacher
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-3 py-1 bg-[#073B7F] text-white rounded-full text-xs font-medium hover:bg-[#062f66] transition-colors flex items-center gap-1 w-full sm:w-auto justify-center"
+            >
+              <span className="text-sm">+</span>
+              Add New Teacher
+            </button>
+            <button
+              onClick={clearCachedData}
+              className="px-3 py-1 text-xs border rounded-full ml-2"
+            >
+              Clear Cache
+            </button>
+          </div>
         </div>
       </div>
 
@@ -736,18 +831,10 @@ export default function TeachersPage() {
           <table className="w-full" style={{ borderSpacing: "4px", borderCollapse: "separate" }}>
             <thead>
               <tr>
-                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">
-                  Full Name
-                </th>
-                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">
-                  Email
-                </th>
-                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">
-                  Phone
-                </th>
-                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">
-                  Actions
-                </th>
+                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">Full Name</th>
+                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">Email</th>
+                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">Phone</th>
+                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -795,33 +882,18 @@ export default function TeachersPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4 sm:gap-0">
-        <p className="text-xs sm:text-sm text-gray-600">
-          Showing 1 to {filteredTeachers.length} of {teachers.length} entries
-        </p>
+        <p className="text-xs sm:text-sm text-gray-600">Showing 1 to {filteredTeachers.length} of {teachers.length} entries</p>
         <div className="flex items-center gap-2">
-          <button className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors">
-            Previous
-          </button>
-          <button className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[#073B7F] text-white text-xs sm:text-sm rounded hover:bg-[#062f66] transition-colors">
-            1
-          </button>
-          <button className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-xs sm:text-sm rounded transition-colors">
-            2
-          </button>
-          <button className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors">
-            Next
-          </button>
+          <button className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors">Previous</button>
+          <button className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[#073B7F] text-white text-xs sm:text-sm rounded hover:bg-[#062f66] transition-colors">1</button>
+          <button className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-xs sm:text-sm rounded transition-colors">2</button>
+          <button className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors">Next</button>
         </div>
       </div>
 
       <AddTeacherModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onTeacherAdded={handleTeacherAdded} />
       <ViewTeacherModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} teacher={selectedTeacher} />
-      <EditTeacherModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        teacher={selectedTeacher}
-        onTeacherUpdated={handleTeacherUpdated}
-      />
+      <EditTeacherModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} teacher={selectedTeacher} onTeacherUpdated={handleTeacherUpdated} />
     </div>
   )
 }
