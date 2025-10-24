@@ -15,6 +15,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import StudentFinanceTable from "@/components/finance/StudentFinanceTable";
 
 const getAuthToken = () => localStorage.getItem("school_token");
 
@@ -145,9 +146,8 @@ export default function DashboardPage() {
             <input
               type="text"
               placeholder="Search here..."
-              className={`w-full pl-10 pr-4 py-2 rounded-full border shadow focus:outline-none focus:border-blue-400 transition-colors ${
-                darkMode ? "bg-blue-900 border-blue-800 text-gray-200 placeholder-gray-400" : "bg-white"
-              }`}
+              className={`w-full pl-10 pr-4 py-2 rounded-full border shadow focus:outline-none focus:border-blue-400 transition-colors ${darkMode ? "bg-blue-900 border-blue-800 text-gray-200 placeholder-gray-400" : "bg-white"
+                }`}
             />
             <Search
               size={18}
@@ -158,9 +158,8 @@ export default function DashboardPage() {
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleTheme}
-            className={`p-2 rounded-full transition-colors duration-500 ${
-              darkMode ? "bg-blue-800 hover:bg-blue-700 text-yellow-300" : "bg-gray-200 hover:bg-gray-300 text-blue-800"
-            }`}
+            className={`p-2 rounded-full transition-colors duration-500 ${darkMode ? "bg-blue-800 hover:bg-blue-700 text-yellow-300" : "bg-gray-200 hover:bg-gray-300 text-blue-800"
+              }`}
           >
             {darkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -231,9 +230,15 @@ export default function DashboardPage() {
                 <Bar dataKey="thisWeek" name="This Week" fill="#FACC15" barSize={20} radius={[10, 10, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+
+           
+
           </div>
         </div>
       </div>
+       <div className="mt-8">
+              <StudentFinanceTable darkMode={darkMode} />
+            </div>
     </div>
   );
 }
@@ -259,9 +264,8 @@ function StatsCard({
   darkMode: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-3 p-3 sm:p-4 rounded-xl shadow transition-colors ${
-      darkMode ? "bg-blue-900 text-gray-100" : "bg-white"
-    }`}>
+    <div className={`flex items-center gap-3 p-3 sm:p-4 rounded-xl shadow transition-colors ${darkMode ? "bg-blue-900 text-gray-100" : "bg-white"
+      }`}>
       <div className={`p-2 sm:p-3 rounded-full ${bgColor} text-white`}>
         {icon}
       </div>
