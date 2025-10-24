@@ -88,6 +88,8 @@ export default function DashboardLayout({
   const getCurrentView = () => {
     if (pathname.includes("/student")) return "students"
     if (pathname.includes("/teacher")) return "teachers"
+    if (pathname.includes("/courses")) return "subjects"
+    if (pathname.includes("/events")) return "events"
     if (pathname.includes("/school")) return "dashboard"
     return "dashboard"
   }
@@ -110,10 +112,10 @@ export default function DashboardLayout({
         router.push("/dashboard/school")
         break
       case "subjects":
-        router.push("/dashboard/school")
+        router.push("/dashboard/courses")
         break
       case "events":
-        router.push("/dashboard/school")
+        router.push("/dashboard/events")
         break
       case "settings":
         router.push("/dashboard/school")
