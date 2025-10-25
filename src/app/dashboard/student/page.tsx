@@ -23,6 +23,8 @@ import {
 } from "lucide-react"
 
 
+
+
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
@@ -94,6 +96,14 @@ const getAuthToken = () => {
   return null
 }
 
+const normalizePhone = (phone: string): string => {
+  if (!phone) return ""
+  if (phone.startsWith("0")) return "+234" + phone.slice(1)
+  if (!phone.startsWith("+")) return "+234" + phone
+  return phone
+}
+
+
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const token = getAuthToken()
   const url = `${API_BASE_URL}${endpoint}`
@@ -107,6 +117,8 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     }
   }
 
+
+
   const config: RequestInit = {
     ...options,
     headers: {
@@ -117,16 +129,23 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   }
 
   const response = await fetch(url, config)
+  const text = await response.text()
 
+  let data: any
+  try {
+    data = text ? JSON.parse(text) : null
+  } catch {
+    data = text
+  }
+
+  // ✅ Updated error handling
   if (!response.ok) {
-    // Try to log the error body from backend
-    let errorBody: any
-    try {
-      errorBody = await response.json()
-    } catch {
-      errorBody = await response.text()
+    console.error("HTTP status:", response.status)
+    console.error("API Error Response Body:", data)
+
+    if (data?.message) {
+      throw new Error(data.message) // Show backend error message
     }
-    console.error("API Error Response Body:", errorBody)
 
     if (response.status === 401) {
       console.log("Authentication failed - token may be invalid or expired")
@@ -143,16 +162,21 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
     throw new Error(`HTTP error! status: ${response.status}`)
   }
 
-  return response.json()
+  return data
 }
+
 
 
 const createStudent = async (studentData: CreateStudentData) => {
-  return apiRequest("/api/v1/student/create", {
+  const response = await apiRequest("/api/v1/student/create", {
     method: "POST",
     body: JSON.stringify(studentData),
   })
+
+  // If the API returns { message, data }, extract data
+  return response.data || response
 }
+
 
 const fetchStudents = async () => {
   return apiRequest("/api/v1/student")
@@ -172,6 +196,7 @@ const updateStudent = async (id: number, studentData: Partial<CreateStudentData>
     body: JSON.stringify(studentData),
   })
 }
+
 
 const deleteStudent = async (id: number) => {
   return apiRequest(`/api/v1/student/${id}`, {
@@ -271,23 +296,31 @@ function AddStudentModal({
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setIsLoading(true)
+  setError("")
 
-    try {
-      await createStudent(formData)
-      setFormData({ fullName: "", email: "", phone: "", className: "" })
-      onStudentAdded()
-      onClose()
-    } catch (err) {
-      setError("Failed to create student. Please try again.")
-      console.error("Error creating student:", err)
-    } finally {
-      setIsLoading(false)
+  try {
+    const normalizedData: CreateStudentData = {
+      fullName: formData.fullName,
+      email: formData.email,
+      phone: normalizePhone(formData.phone), // <-- always string
+      className: formData.className,
     }
+
+    await createStudent(normalizedData)
+    setFormData({ fullName: "", email: "", phone: "", className: "" })
+    onStudentAdded()
+    onClose()
+  } catch (err) {
+    setError("Failed to create student. Please check the form fields.")
+    console.error("Error creating student:", err)
+  } finally {
+    setIsLoading(false)
   }
+}
+
 
   if (!isOpen) return null
 
@@ -1004,3 +1037,4 @@ export default function StudentsPage() {
     </div>
   )
 }
+
