@@ -1,468 +1,901 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
-import { Star, BookOpen, GraduationCap, Users, Award, PlayCircle, Clock, Calendar, Moon, Sun, ChevronRight, Target, Lightbulb, Menu, X, LogIn, UserPlus } from 'lucide-react';
-import { usePathname } from "next/navigation";
-import Link from 'next/link';
+import type React from "react"
+import { useState, useEffect } from "react"
+import { Poppins } from "next/font/google"
+import {
+  Edit,
+  Trash2,
+  Eye,
+  Search,
+  X,
+} from "lucide-react"
 
-export default function EduCentralLanding() {
-  const [currentStudents, setCurrentStudents] = useState(1247);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const pathname = usePathname();
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsAnimating(true);
-      setCurrentStudents(prev => prev + Math.floor(Math.random() * 5));
-      setTimeout(() => setIsAnimating(false), 500);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
+const poppins = Poppins({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+})
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
+interface Teacher {
+  id: number
+  fullName: string
+  email: string
+  phone: string
+  accessCode: string
+  profileCode: string
+  role: string
+  school: {
+    id: number
+    name: string
+    address: string
+    role: string
+    email: string
+    phone: string
+    website: string | null
+    isActive: boolean
+    accessCode: string
+    profileCode: string
+    profilePicture: string | null
+    coverPicture: string | null
+  }
+  user: any
+  subject?: string
+}
+
+interface CreateTeacherData {
+  fullName: string
+  email: string
+  phone: string
+  subject?: string
+}
+
+const API_BASE_URL = "https://skul-africa.onrender.com"
+
+const getAuthToken = () => {
+  if (typeof window !== "undefined") {
+    const possibleKeys = ["school_token", "token", "authToken", "access_token", "auth_token"]
+
+    for (const key of possibleKeys) {
+      const token = localStorage.getItem(key)
+      if (token) {
+        console.log("[v0] Found token with key:", key, "Length:", token.length)
+        return token
+      }
+    }
+
+    console.log("[v0] No token found in localStorage. Available keys:", Object.keys(localStorage))
+    return null
+  }
+  return null
+}
+
+const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const token = getAuthToken()
+  const url = `${API_BASE_URL}${endpoint}`
+
+  console.log("[v0] API Request:", { endpoint, hasToken: !!token, tokenLength: token?.length })
+
+  // Log request body for debugging if present
+  if (options.body) {
+    try {
+      console.log("[v0] Request body:", JSON.parse(options.body as string))
+    } catch {
+      console.log("[v0] Request body (raw):", options.body)
+    }
+  }
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
+  }
+
+  const response = await fetch(url, config)
+
+  if (!response.ok) {
+    // Try to read error body and log it
+    let errorBody: any = null
+    try {
+      errorBody = await response.json()
+    } catch {
+      try {
+        errorBody = await response.text()
+      } catch {
+        errorBody = null
+      }
+    }
+    console.error("[v0] Error Response Body:", errorBody)
+
+    // Load theme from localStorage
+    useEffect(() => {
+      const savedTheme = localStorage.getItem("theme")
+      if (savedTheme === "dark") {
+        document.documentElement.classList.add("dark")
+      } else {
+        document.documentElement.classList.remove("dark")
+      }
+    }, [])
+
+    if (response.status === 401) {
+      console.warn("[v0] Authentication failed - token may be invalid or expired")
+
+      // Clear known token keys
+      localStorage.removeItem("school_token")
+      localStorage.removeItem("token")
+      localStorage.removeItem("authToken")
+      localStorage.removeItem("access_token")
+      localStorage.removeItem("auth_token")
+
+      alert("Your session has expired. Please login again.")
+      window.location.href = "/login_select"
+      throw new Error(`Session expired. Please login again.`)
+    }
+
+    if (response.status === 404) {
+      throw new Error(`Resource not found. Check if the API endpoint is correct.`)
+    }
+
+    // Fallback error
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+// NOTE: Backend mapping shows POST /api/v1/teacher (mapped in Nest logs).
+// We will send role: "TEACHER" if backend expects it or already handles role.
+const createTeacher = async (data: any) => {
+  const token = localStorage.getItem("school_token");
+  const endpoint = `${API_BASE_URL}/api/v1/teacher`;
+
+  console.log("[Teacher API] Sending request to:", endpoint);
+  console.log("[Teacher API] Payload:", data);
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      ...data,
+      role: "TEACHER", // ensure backend gets role
+    }),
+  });
+
+  // Log backend response status and body (for debugging)
+  console.log("[Teacher API] Response status:", res.status);
+  const text = await res.text();
+  console.log("[Teacher API] Raw response:", text);
+
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
+
+  return JSON.parse(text);
+};
+
+
+const fetchTeachers = async () => {
+  return apiRequest("/api/v1/teacher")
+}
+
+const getTeacher = async (id: number) => {
+  return apiRequest(`/api/v1/teacher/${id}`)
+}
+
+const updateTeacher = async (id: number, teacherData: Partial<CreateTeacherData>) => {
+  return apiRequest(`/api/v1/teacher/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(teacherData),
+  })
+}
+
+const deleteTeacher = async (id: number) => {
+  return apiRequest(`/api/v1/teacher/${id}`, {
+    method: "DELETE",
+  })
+}
+
+const fetchSchool = async () => {
+  return apiRequest("/api/v1/school/me")
+}
+
+// Offline data management functions
+const saveTeachersToLocalStorage = (teachers: Teacher[], schoolId?: number) => {
+  try {
+    const dataToSave = {
+      teachers,
+      schoolId,
+      lastUpdated: Date.now(),
+      version: '1.0'
+    }
+    localStorage.setItem('school_teachers_data', JSON.stringify(dataToSave))
+    console.log('[v0] Teachers data saved to localStorage:', teachers.length, 'teachers')
+  } catch (error) {
+    console.error('[v0] Error saving teachers to localStorage:', error)
+  }
+}
+
+const loadTeachersFromLocalStorage = (): { teachers: Teacher[], schoolId?: number, lastUpdated?: number } | null => {
+  try {
+    const data = localStorage.getItem('school_teachers_data')
+    if (data) {
+      const parsedData = JSON.parse(data)
+      console.log('[v0] Teachers data loaded from localStorage:', parsedData.teachers?.length || 0, 'teachers')
+      return parsedData
+    }
+  } catch (error) {
+    console.error('[v0] Error loading teachers from localStorage:', error)
+  }
+  return null
+}
+
+const isOnline = () => {
+  return typeof navigator !== 'undefined' && navigator.onLine
+}
+
+function AddTeacherModal({
+  isOpen,
+  onClose,
+  onTeacherAdded,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onTeacherAdded: () => void
+}) {
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    subject: "",
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // 🧠 Debug log — see exactly what is being sent
+      console.log("[Teacher API] Submitting teacher:", formData);
+
+      // Call the API to create a teacher
+      await createTeacher(formData);
+
+      // ✅ Reset form and close modal after success
+      setFormData({ fullName: "", email: "", phone: "", subject: "" });
+      onTeacherAdded();
+      onClose();
+    } catch (err: any) {
+      // 🧩 More detailed error reporting
+      console.error("[Teacher API] Error creating teacher:", err);
+
+      // Show a gentle temporary message instead of raw error
+      setError("Could not create teacher. Please check the fields and try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
 
-  const handleLogin = () => {
-    window.location.href = '/login_select';
-  };
 
-  const handleSignUp = () => {
-    window.location.href = '/signup_select';
-  };
-
-  const educationIcons = [
-    { icon: BookOpen, name: 'Courses' },
-    { icon: GraduationCap, name: 'Degrees' },
-    { icon: Users, name: 'Community' },
-    { icon: Award, name: 'Certificates' },
-    { icon: Target, name: 'Goals' },
-    { icon: Lightbulb, name: 'Innovation' }
-  ];
+  if (!isOpen) return null
 
   return (
-    <div className={`min-h-screen transition-all duration-500 relative overflow-hidden ${
-      isDarkMode 
-        ? 'bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white' 
-        : 'bg-gradient-to-br from-blue-50 via-white to-indigo-100 text-slate-900'
-    }`}>
-      <div className="absolute inset-0 opacity-10">
-        <div className={`absolute top-10 sm:top-20 left-5 sm:left-10 w-32 sm:w-64 h-32 sm:h-64 rounded-full blur-3xl ${
-          isDarkMode 
-            ? 'bg-gradient-to-r from-blue-400 to-transparent' 
-            : 'bg-gradient-to-r from-blue-300 to-transparent'
-        }`}></div>
-        <div className={`absolute bottom-10 sm:bottom-20 right-5 sm:right-10 w-48 sm:w-96 h-48 sm:h-96 rounded-full blur-3xl ${
-          isDarkMode 
-            ? 'bg-gradient-to-l from-indigo-400 to-transparent' 
-            : 'bg-gradient-to-l from-indigo-300 to-transparent'
-        }`}></div>
-        <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 sm:w-[600px] h-80 sm:h-[600px] rounded-full ${
-          isDarkMode 
-            ? 'bg-gradient-radial from-purple-500/20 to-transparent' 
-            : 'bg-gradient-radial from-purple-400/10 to-transparent'
-        }`}></div>
-      </div>
-
-      <header className="relative z-10 flex justify-between items-center p-4 sm:p-6">
-        <div className="flex items-center space-x-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isDarkMode ? 'bg-blue-400' : 'bg-blue-600'
-          }`}>
-            <GraduationCap className={`w-5 h-5 ${
-              isDarkMode ? 'text-blue-900' : 'text-white'
-            }`} />
-          </div>
-          <span className="text-lg sm:text-xl font-bold">skul Africa</span>
-        </div>
-        <nav className="hidden lg:flex space-x-8">
-          {[
-            { name: 'Courses', href: '/courses' },
-            { name: 'Programs', href: '/programs' },
-            { name: 'Resources', href: '/resources' },
-            { name: 'Community', href: '/community' },
-            { name: 'About', href: '/about' },
-            { name: 'FAQ', href: '/faq' },
-          ].map(({ name, href }) => {
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={name}
-                href={href}
-                className={`px-4 py-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
-                  isActive
-                    ? 'bg-white text-slate-900 font-semibold'
-                    : isDarkMode
-                    ? 'hover:bg-white/10 text-white'
-                    : 'hover:bg-blue-100 text-slate-700'
-                }`}
-              >
-                {name}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          <button
-            onClick={toggleTheme}
-            className={`p-2 rounded-full transition-all duration-300 transform hover:scale-105 ${
-              isDarkMode 
-                ? 'bg-white/10 hover:bg-white/20' 
-                : 'bg-blue-100 hover:bg-blue-200'
-            }`}
-          >
-            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Add New Teacher</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={20} />
           </button>
-          <button
-            onClick={toggleMobileMenu}
-            className={`lg:hidden p-2 rounded-full transition-all duration-300 ${
-              isDarkMode 
-                ? 'bg-white/10 hover:bg-white/20' 
-                : 'bg-blue-100 hover:bg-blue-200'
-            }`}
-          >
-            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-          <div className="hidden sm:flex items-center space-x-2">
-            <button 
-              onClick={handleLogin}
-              className={`px-4 py-2 rounded-full font-medium transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 ${
-                isDarkMode 
-                  ? 'text-white hover:bg-white/10 border border-white/20' 
-                  : 'text-slate-700 hover:bg-blue-50 border border-blue-200'
-              }`}
-            >
-              <LogIn className="w-4 h-4" />
-              <span>Login</span>
-            </button>
-            <button 
-              onClick={handleSignUp}
-              className={`px-4 sm:px-6 py-2 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base flex items-center space-x-2 ${
-                isDarkMode 
-                  ? 'bg-blue-400 text-blue-900 hover:bg-blue-300' 
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Sign Up</span>
-            </button>
-          </div>
         </div>
-      </header>
 
-      {isMobileMenuOpen && (
-        <div
-          className={`lg:hidden fixed inset-x-0 top-20 z-50 mx-4 rounded-2xl shadow-2xl backdrop-blur-lg ${
-            isDarkMode
-              ? 'bg-slate-900/90 border border-white/20'
-              : 'bg-white/90 border border-blue-200'
-          }`}
-        >
-          <nav className="flex flex-col p-6 space-y-4">
-            {[
-              { name: "Courses", href: "/courses" },
-              { name: "Programs", href: "/programs" },
-              { name: "Resources", href: "/resources" },
-              { name: "Community", href: "/community" },
-              { name: "About", href: "/about" },
-              { name: "FAQ", href: "/faq" },
-            ].map(({ name, href }) => {
-              const isActive = pathname === href;
-              return (
-                <Link
-                  key={name}
-                  href={href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`px-4 py-3 rounded-xl text-left transition-all duration-300 block ${
-                    isActive
-                      ? 'bg-white text-slate-900 font-semibold'
-                      : isDarkMode
-                      ? 'hover:bg-white/10 text-white'
-                      : 'hover:bg-blue-100 text-slate-700'
-                  }`}
-                >
-                  {name}
-                </Link>
-              );
-            })}
-            <div className="flex flex-col space-y-3 pt-4 border-t border-white/20">
-              <button 
-                onClick={() => {
-                  handleLogin();
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`px-4 py-3 rounded-full font-medium transition-all duration-300 flex items-center justify-center space-x-2 ${
-                  isDarkMode 
-                    ? 'text-white hover:bg-white/10 border border-white/20' 
-                    : 'text-slate-700 hover:bg-blue-50 border border-blue-200'
-                }`}
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Login</span>
-              </button>
-              <button 
-                onClick={() => {
-                  handleSignUp();
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`px-6 py-3 rounded-full font-semibold transition-all duration-300 shadow-lg flex items-center justify-center space-x-2 ${
-                  isDarkMode 
-                    ? 'bg-blue-400 text-blue-900 hover:bg-blue-300' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Sign Up</span>
-              </button>
-            </div>
-          </nav>
-        </div>
-      )}
+        {error && <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>}
 
-      <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between px-4 sm:px-6 py-6 sm:py-12 max-w-7xl mx-auto">
-        <div className="w-full lg:w-1/2 space-y-6 sm:space-y-8 text-center lg:text-left">
-          <div className={`flex items-center justify-center lg:justify-start space-x-2 ${
-            isDarkMode ? 'text-blue-300' : 'text-blue-600'
-          }`}>
-            <BookOpen className="w-4 sm:w-5 h-4 sm:h-5" />
-            <span className="text-xs sm:text-sm">How learning works</span>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Full Name</label>
+            <input
+              type="text"
+              required
+              value={formData.fullName}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-gray-900"
+              placeholder="Enter full name"
+            />
           </div>
-          <div className="space-y-4 sm:space-y-6">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
-              Your Ultimate Guide
-              <br />
-              <span className={isDarkMode ? 'text-blue-400' : 'text-blue-600'}>
-                to Educational Excellence
-              </span>
-            </h1>
-            <p className={`text-base sm:text-lg max-w-md mx-auto lg:mx-0 ${
-              isDarkMode ? 'text-blue-200' : 'text-slate-600'
-            }`}>
-              Comprehensive learning platform designed to elevate your educational journey 
-              with expert-led courses and interactive learning experiences
-            </p>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Email</label>
+            <input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-gray-900"
+              placeholder="Enter email address"
+            />
           </div>
-          <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-4 justify-center lg:justify-start">
-            <button 
-              onClick={handleLogin}
-              className={`px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center space-x-2 ${
-                isDarkMode 
-                  ? 'bg-white/10 text-white hover:bg-white/20 border border-white/30' 
-                  : 'bg-white text-slate-700 hover:bg-gray-50 border border-blue-200 shadow-lg'
-              }`}
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Phone</label>
+            <input
+              type="tel"
+              required
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-gray-900"
+              placeholder="Enter phone number"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Subject</label>
+            <input
+              type="text"
+              value={formData.subject}
+              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-gray-900"
+              placeholder="Enter subject (optional)"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
-              <LogIn className="w-4 sm:w-5 h-4 sm:h-5" />
-              <span>Login</span>
+              Cancel
             </button>
-            <button 
-              onClick={handleSignUp}
-              className={`px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-2xl flex items-center space-x-2 ${
-                isDarkMode 
-                  ? 'bg-blue-400 text-blue-900 hover:bg-blue-300' 
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex-1 px-4 py-2 bg-[#073B7F] text-white rounded-lg hover:bg-[#062f66] transition-colors disabled:opacity-50 font-medium"
             >
-              <UserPlus className="w-4 sm:w-5 h-4 sm:h-5" />
-              <span>Get Started</span>
-              <ChevronRight className="w-4 sm:w-5 h-4 sm:h-5" />
+              {isLoading ? "Creating..." : "Create Teacher"}
             </button>
           </div>
-          <div className={`flex items-center justify-center lg:justify-start space-x-4 backdrop-blur-sm rounded-2xl p-4 max-w-xs mx-auto lg:mx-0 ${
-            isDarkMode 
-              ? 'bg-white/10 border border-white/20' 
-              : 'bg-white/80 border border-blue-200 shadow-lg'
-          }`}>
-            <div className="flex text-yellow-400">
-              {[1,2,3,4,5].map((star) => (
-                <Star key={star} className="w-3 sm:w-4 h-3 sm:h-4 fill-current" />
-              ))}
-            </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-bold">4.9</div>
-              <div className={`text-xs sm:text-sm ${
-                isDarkMode ? 'text-blue-300' : 'text-slate-500'
-              }`}>+8,547 reviews</div>
-            </div>
-          </div>
-        </div>
-        <div className="w-full lg:w-1/2 mt-8 lg:mt-0 relative px-4 sm:px-0">
-          <div className={`backdrop-blur-lg rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl max-w-md mx-auto lg:max-w-none ${
-            isDarkMode 
-              ? 'bg-white/10 border border-white/20' 
-              : 'bg-white/90 border border-blue-200 shadow-xl'
-          }`}>
-            <div className="mb-4 sm:mb-6">
-              <div className={`text-xs sm:text-sm mb-2 ${
-                isDarkMode ? 'text-blue-300' : 'text-slate-500'
-              }`}>Monthly Learning Goal</div>
-              <div className="text-2xl sm:text-3xl font-bold">40 Hours</div>
-              <div className={`w-full h-2 rounded-full mt-2 ${
-                isDarkMode ? 'bg-white/20' : 'bg-blue-100'
-              }`}>
-                <div className="w-3/4 h-full bg-gradient-to-r from-blue-400 to-purple-400 rounded-full"></div>
-              </div>
-            </div>
-            <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
-              <div className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between ${
-                isDarkMode ? 'bg-white/10' : 'bg-blue-50'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  <div className={`w-8 sm:w-10 h-8 sm:h-10 rounded-full flex items-center justify-center ${
-                    isDarkMode ? 'bg-green-400' : 'bg-green-500'
-                  }`}>
-                    <PlayCircle className="w-4 sm:w-5 h-4 sm:h-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-sm sm:text-base">Current Course</div>
-                    <div className={`text-xs sm:text-sm ${
-                      isDarkMode ? 'text-blue-300' : 'text-slate-500'
-                    }`}>Advanced Mathematics</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-sm sm:text-base">75%</div>
-                  <div className={`text-xs sm:text-sm ${
-                    isDarkMode ? 'text-blue-300' : 'text-slate-500'
-                  }`}>Progress</div>
-                </div>
-              </div>
-              <div className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-between ${
-                isDarkMode ? 'bg-white/10' : 'bg-blue-50'
-              }`}>
-                <div className="flex items-center space-x-3">
-                  <div className={`w-8 sm:w-10 h-8 sm:h-10 rounded-full flex items-center justify-center ${
-                    isDarkMode ? 'bg-orange-400' : 'bg-orange-500'
-                  }`}>
-                    <Clock className="w-4 sm:w-5 h-4 sm:h-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-sm sm:text-base">Next Session</div>
-                    <div className={`text-xs sm:text-sm ${
-                      isDarkMode ? 'text-blue-300' : 'text-slate-500'
-                    }`}>Physics Lab - 2:00 PM</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-sm sm:text-base">Today</div>
-                  <div className={`text-xs sm:text-sm ${
-                    isDarkMode ? 'text-blue-300' : 'text-slate-500'
-                  }`}>Room 301</div>
-                </div>
-              </div>
-            </div>
-            <div className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 ${
-              isDarkMode 
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600' 
-                : 'bg-gradient-to-r from-indigo-500 to-purple-500'
-            }`}>
-              <div className="flex justify-between items-start mb-2 sm:mb-4">
-                <div className="text-white text-xs sm:text-sm">Student ID</div>
-                <div className="text-white text-xs sm:text-sm">2024</div>
-              </div>
-              <div className="text-white font-mono text-base sm:text-lg">STU-2024-****</div>
-              <div className="text-indigo-200 text-xs sm:text-sm mt-1 sm:mt-2">Active Student</div>
-            </div>
-          </div>
-          <div className={`hidden md:block absolute -right-2 lg:-right-4 top-4 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-xl ${
-            isDarkMode 
-              ? 'bg-yellow-400 text-yellow-900' 
-              : 'bg-yellow-500 text-white'
-          }`}>
-            <div className="flex items-center space-x-2 mb-2">
-              <Award className="w-4 sm:w-5 h-4 sm:h-5" />
-              <span className="font-semibold text-sm sm:text-base">Achievement</span>
-            </div>
-            <div className="text-xs sm:text-sm">Top Performer</div>
-          </div>
-          <div className={`absolute -left-2 sm:-left-8 bottom-4 backdrop-blur-lg rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-xl ${
-            isDarkMode 
-              ? 'bg-white/10 border border-white/20' 
-              : 'bg-white/90 border border-blue-200'
-          }`}>
-            <div className="flex items-center space-x-2 mb-2">
-              <div className={`w-5 sm:w-6 h-5 sm:h-6 rounded-full flex items-center justify-center ${
-                isDarkMode ? 'bg-green-400' : 'bg-green-500'
-              }`}>
-                <Users className="w-3 sm:w-4 h-3 sm:h-4 text-white" />
-              </div>
-              <span className="font-semibold text-xs sm:text-base">Active Students</span>
-            </div>
-            <div className={`text-lg sm:text-2xl font-bold transition-all duration-500 ${
-              isAnimating ? 'scale-110 text-blue-400' : ''
-            }`}>
-              {currentStudents.toLocaleString()}
-            </div>
-            <div className={`w-12 sm:w-20 h-4 sm:h-8 rounded opacity-60 mt-2 ${
-              isDarkMode 
-                ? 'bg-gradient-to-r from-green-400 to-blue-400' 
-                : 'bg-gradient-to-r from-green-500 to-blue-500'
-            }`}></div>
-          </div>
-          <div className={`hidden xl:block absolute top-1/2 -right-12 backdrop-blur-lg rounded-2xl p-3 shadow-xl ${
-            isDarkMode 
-              ? 'bg-white/10 border border-white/20' 
-              : 'bg-white/90 border border-blue-200'
-          }`}>
-            <div className="flex items-center space-x-2 mb-2">
-              <Calendar className="w-4 h-4 text-blue-400" />
-              <span className="font-semibold text-sm">Today's Schedule</span>
-            </div>
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <span>Math</span>
-                <span className={isDarkMode ? 'text-blue-300' : 'text-slate-500'}>9:00 AM</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Physics</span>
-                <span className={isDarkMode ? 'text-blue-300' : 'text-slate-500'}>2:00 PM</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Chemistry</span>
-                <span className={isDarkMode ? 'text-blue-300' : 'text-slate-500'}>4:00 PM</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="absolute bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2">
-        <div className="flex space-x-3 sm:space-x-6">
-          {educationIcons.map((edu, index) => (
-            <div
-              key={index}
-              className={`w-8 sm:w-12 h-8 sm:h-12 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-300 transform hover:scale-110 cursor-pointer ${
-                isDarkMode 
-                  ? 'bg-white/10 hover:bg-white/20' 
-                  : 'bg-white/80 hover:bg-white shadow-lg'
-              }`}
-              title={edu.name}
-            >
-              <edu.icon className={`w-4 sm:w-6 h-4 sm:h-6 ${
-                isDarkMode ? 'text-blue-300' : 'text-blue-600'
-              }`} />
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className={`absolute top-1/4 right-1/4 w-1 sm:w-2 h-1 sm:h-2 rounded-full animate-pulse ${
-        isDarkMode ? 'bg-blue-400' : 'bg-blue-500'
-      }`}></div>
-      <div className={`absolute top-3/4 left-1/4 w-1 h-1 rounded-full animate-ping ${
-        isDarkMode ? 'bg-indigo-300' : 'bg-indigo-400'
-      }`}></div>
-      <div className={`absolute top-1/2 right-1/3 w-2 sm:w-3 h-2 sm:h-3 rounded-full animate-bounce ${
-        isDarkMode ? 'bg-purple-500' : 'bg-purple-600'
-      }`} style={{animationDelay: '1s'}}></div>
-      <div className="absolute top-20 right-10 sm:right-20 animate-pulse">
-        <BookOpen className={`w-6 sm:w-8 h-6 sm:h-8 ${isDarkMode ? 'text-blue-300/30' : 'text-blue-400/30'}`} />
-      </div>
-      <div className="absolute bottom-32 left-10 sm:left-20 animate-pulse" style={{animationDelay: '2s'}}>
-        <Lightbulb className={`w-5 sm:w-6 h-5 sm:h-6 ${isDarkMode ? 'text-yellow-300/30' : 'text-yellow-400/30'}`} />
+        </form>
       </div>
     </div>
-  );
+  )
 }
+
+function ViewTeacherModal({
+  isOpen,
+  onClose,
+  teacher,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  teacher: Teacher | null
+}) {
+  if (!isOpen || !teacher) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Teacher Details</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Full Name</label>
+            <p className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">{teacher.fullName}</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Email</label>
+            <p className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">{teacher.email}</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Phone</label>
+            <p className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">{teacher.phone}</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Access Code</label>
+            <p className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">{teacher.accessCode}</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">School</label>
+            <p className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">{teacher.school.name}</p>
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-[#073B7F] text-white rounded-lg hover:bg-[#062f66] transition-colors font-medium"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EditTeacherModal({
+  isOpen,
+  onClose,
+  teacher,
+  onTeacherUpdated,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  teacher: Teacher | null
+  onTeacherUpdated: () => void
+}) {
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    subject: "",
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    if (isOpen && teacher) {
+      setFormData({
+        fullName: teacher.fullName,
+        email: teacher.email,
+        phone: teacher.phone,
+        subject: (teacher as any).subject || "",
+      })
+    }
+  }, [isOpen, teacher])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!teacher) return
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      await updateTeacher(teacher.id, formData)
+      onTeacherUpdated()
+      onClose()
+    } catch (err) {
+      setError("Failed to update teacher. Please try again.")
+      console.error("Error updating teacher:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (!isOpen || !teacher) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-gray-900">Edit Teacher</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={20} />
+          </button>
+        </div>
+
+        {error && <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{error}</div>}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Full Name</label>
+            <input
+              type="text"
+              required
+              value={formData.fullName}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-gray-900"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Email</label>
+            <input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-gray-900"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Phone</label>
+            <input
+              type="tel"
+              required
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-gray-900"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-1">Subject</label>
+            <input
+              type="text"
+              value={formData.subject}
+              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-gray-900"
+              placeholder="Enter subject"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="flex-1 px-4 py-2 bg-[#073B7F] text-white rounded-lg hover:bg-[#062f66] transition-colors disabled:opacity-50 font-medium"
+            >
+              {isLoading ? "Updating..." : "Update Teacher"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default function TeachersPage() {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null)
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [currentSchool, setCurrentSchool] = useState<{ id: number; name: string } | null>(null)
+
+  const loadSchool = async () => {
+    try {
+      console.log("[v0] Loading school data...")
+      const schoolData = await fetchSchool()
+      console.log("[v0] School data loaded:", schoolData)
+      setCurrentSchool({ id: schoolData.id, name: schoolData.name })
+      return schoolData.id
+    } catch (err) {
+      console.error("[v0] Error fetching school:", err)
+      if (err instanceof Error && err.message.includes("Authentication failed")) {
+        console.log("[v0] Authentication failed - will show all teachers")
+      }
+      return null
+    }
+  }
+
+  const loadTeachers = async () => {
+    console.log("[Teachers] Starting loadTeachers function")
+
+    const timeout = setTimeout(() => {
+      console.log("[Teachers] Load timeout reached, forcing completion")
+      setIsLoading(false)
+      if (teachers.length === 0) {
+        setError("Loading took too long. Please refresh the page or check your connection.")
+      }
+    }, 10000) // 10 second timeout
+
+    try {
+      setIsLoading(true)
+      console.log("[Teachers] Starting to load teachers...")
+
+      // First, try to load from localStorage
+      const localData = loadTeachersFromLocalStorage()
+      if (localData && localData.teachers) {
+        console.log("[Teachers] Loading teachers from localStorage:", localData.teachers.length, "teachers")
+        setTeachers(localData.teachers)
+        setCurrentSchool(localData.schoolId ? { id: localData.schoolId, name: 'School' } : null)
+        setError("")
+      }
+
+      if (isOnline()) {
+        console.log("[Teachers] Online - attempting to fetch fresh data from API...")
+        try {
+          const schoolId = await loadSchool()
+          console.log("[Teachers] School ID obtained:", schoolId)
+
+          const response = await fetchTeachers()
+          console.log("[Teachers] API Response received:", response)
+
+          const teachersData = Array.isArray(response) ? response : (response?.data || [])
+          console.log("[Teachers] Teachers data array:", teachersData.length, "items")
+
+          let filteredTeachers: Teacher[] = []
+          if (schoolId) {
+            filteredTeachers = teachersData.filter((teacher: Teacher) => teacher.school?.id === schoolId)
+            console.log("[Teachers] Filtered teachers by school ID:", schoolId, "Count:", filteredTeachers.length)
+          } else {
+            filteredTeachers = teachersData
+            console.log("[Teachers] No school filtering - showing all teachers:", teachersData.length)
+          }
+
+          setTeachers(filteredTeachers)
+          setCurrentSchool(schoolId ? { id: schoolId, name: 'School' } : null)
+
+          saveTeachersToLocalStorage(filteredTeachers, schoolId)
+
+          console.log("[Teachers] Teachers loaded successfully from API:", filteredTeachers.length)
+          setError("")
+        } catch (apiError) {
+          console.error("[Teachers] API fetch failed, using localStorage data:", apiError)
+          if (!localData) {
+            setTeachers([])
+            if (apiError instanceof Error && apiError.message.includes("Authentication failed")) {
+              setError("Authentication failed. Please login as a school administrator to access teacher data.")
+            } else if (apiError instanceof Error && apiError.message.includes("Session expired")) {
+              setError("Your session has expired. Please login again.")
+            } else {
+              setError("Failed to load teachers from server. Using cached data if available.")
+            }
+          }
+        }
+      } else {
+        console.log("[Teachers] Offline - using localStorage data only")
+        if (!localData) {
+          setError("No internet connection and no cached data available. Please connect to the internet and try again.")
+        }
+      }
+    } catch (err) {
+      console.error("[Teachers] Error in loadTeachers:", err)
+      setTeachers([])
+
+      if (err instanceof Error && err.message.includes("Authentication failed")) {
+        setError("Authentication failed. Please login as a school administrator to access teacher data.")
+      } else if (err instanceof Error && err.message.includes("Session expired")) {
+        setError("Your session has expired. Please login again.")
+      } else {
+        setError("Failed to load teachers. Please try again later.")
+      }
+    } finally {
+      clearTimeout(timeout)
+      setIsLoading(false)
+      console.log("[Teachers] Loading completed")
+    }
+  }
+
+  useEffect(() => {
+    loadTeachers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleViewTeacher = async (id: number) => {
+    try {
+      const response = await getTeacher(id)
+      const teacher = response.data || response
+      setSelectedTeacher(teacher)
+      setIsViewModalOpen(true)
+    } catch (err) {
+      console.error("Error fetching teacher:", err)
+      const teacher = teachers.find((t) => t.id === id)
+      if (teacher) {
+        setSelectedTeacher(teacher)
+        setIsViewModalOpen(true)
+      } else {
+        alert("Failed to load teacher details")
+      }
+    }
+  }
+
+  const handleEditTeacher = async (id: number) => {
+    try {
+      const response = await getTeacher(id)
+      const teacher = response.data || response
+      setSelectedTeacher(teacher)
+      setIsEditModalOpen(true)
+    } catch (err) {
+      console.error("Error fetching teacher for edit:", err)
+      const teacher = teachers.find((t) => t.id === id)
+      if (teacher) {
+        setSelectedTeacher(teacher)
+        setIsEditModalOpen(true)
+      } else {
+        alert("Failed to load teacher for editing")
+      }
+    }
+  }
+
+  const handleDeleteTeacher = async (id: number) => {
+    if (confirm("Are you sure you want to delete this teacher?")) {
+      try {
+        await deleteTeacher(id)
+        alert("Teacher deleted successfully")
+        loadTeachers()
+      } catch (err) {
+        console.error("Error deleting teacher:", err)
+        alert("Failed to delete teacher")
+      }
+    }
+  }
+
+  const filteredTeachers = teachers.filter(
+    (teacher) =>
+      teacher.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      teacher.email.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const handleTeacherAdded = () => {
+    loadTeachers()
+  }
+
+  const handleTeacherUpdated = () => {
+    loadTeachers()
+  }
+
+  const clearCachedData = () => {
+    try {
+      localStorage.removeItem('school_teachers_data')
+      console.log('[v0] Cached teacher data cleared')
+    } catch (error) {
+      console.error('[v0] Error clearing cached data:', error)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className={`${poppins.className} flex items-center justify-center min-h-screen bg-[#DDE5FF]`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#073B7F] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading teachers...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`${poppins.className} bg-[#DDE5FF] dark:bg-gray-900 min-h-screen text-gray-900 dark:text-gray-100`}>
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 sm:gap-0">
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Your Students</h1>
+
+          <div className="flex items-center gap-3">
+            {/* Search Bar */}
+            <div className="relative w-full sm:w-auto">
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search here..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-white rounded-lg border border-gray-200 focus:outline-none focus:border-[#073B7F] focus:ring-1 focus:ring-[#073B7F] text-sm placeholder-gray-400 w-full sm:w-64"
+              />
+            </div>
+
+            {/* 🌙 / ☀️ Toggle */}
+            <button
+              onClick={() => {
+                const html = document.documentElement
+                const isDark = html.classList.toggle("dark")
+                localStorage.setItem("theme", isDark ? "dark" : "light")
+              }}
+              className="p-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 transition-colors text-gray-600"
+              title="Toggle Dark Mode"
+            >
+              <span className="block dark:hidden">🌙</span>
+              <span className="hidden dark:block">☀️</span>
+            </button>
+          </div>
+        </div>
+
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 mt-4 bg-white px-2 py-3 rounded-3xl w-full gap-3 sm:gap-0">
+          <p className="text-xs text-gray-600">
+            You have <span className="font-semibold text-[#073B7F]">{teachers.length} Teachers</span>
+            {currentSchool && <span> at {currentSchool.name}</span>}...
+          </p>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-3 py-1 bg-[#073B7F] text-white rounded-full text-xs font-medium hover:bg-[#062f66] transition-colors flex items-center gap-1 w-full sm:w-auto justify-center"
+            >
+              <span className="text-sm">+</span>
+              Add New Teacher
+            </button>
+            <button
+              onClick={clearCachedData}
+              className="px-3 py-1 text-xs border rounded-full ml-2"
+            >
+              Clear Cache
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {error && <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">{error}</div>}
+
+      <div className="rounded-lg p-2 sm:p-4 overflow-x-auto">
+        <div className="min-w-[600px]">
+          <table className="w-full" style={{ borderSpacing: "4px", borderCollapse: "separate" }}>
+            <thead>
+              <tr>
+                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">Full Name</th>
+                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">Email</th>
+                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">Phone</th>
+                <th className="text-center text-xs sm:text-sm font-bold text-gray-700 px-2 sm:px-4 py-3 bg-white">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTeachers.map((teacher) => (
+                <tr key={teacher.id}>
+                  <td className="px-2 sm:px-4 py-3 bg-white text-center">
+                    <span className="text-xs sm:text-sm font-medium text-gray-900">{teacher.fullName}</span>
+                  </td>
+                  <td className="px-2 sm:px-4 py-3 bg-white text-center">
+                    <span className="text-xs sm:text-sm text-gray-700">{teacher.email}</span>
+                  </td>
+                  <td className="px-2 sm:px-4 py-3 bg-white text-center">
+                    <span className="text-xs sm:text-sm text-gray-700">{teacher.phone}</span>
+                  </td>
+                  <td className="px-2 sm:px-4 py-3 bg-white text-center">
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
+                      <button
+                        onClick={() => handleViewTeacher(teacher.id)}
+                        className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                      >
+                        <Eye size={10} className="sm:hidden" />
+                        <Eye size={12} className="hidden sm:block" />
+                      </button>
+                      <button
+                        onClick={() => handleEditTeacher(teacher.id)}
+                        className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                      >
+                        <Edit size={10} className="sm:hidden" />
+                        <Edit size={12} className="hidden sm:block" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTeacher(teacher.id)}
+                        className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                      >
+                        <Trash2 size={10} className="sm:hidden" />
+                        <Trash2 size={12} className="hidden sm:block" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4 sm:gap-0">
+        <p className="text-xs sm:text-sm text-gray-600">Showing 1 to {filteredTeachers.length} of {teachers.length} entries</p>
+        <div className="flex items-center gap-2">
+          <button className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors">Previous</button>
+          <button className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-[#073B7F] text-white text-xs sm:text-sm rounded hover:bg-[#062f66] transition-colors">1</button>
+          <button className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-xs sm:text-sm rounded transition-colors">2</button>
+          <button className="px-2 sm:px-3 py-2 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors">Next</button>
+        </div>
+      </div>
+
+      <AddTeacherModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onTeacherAdded={handleTeacherAdded} />
+      <ViewTeacherModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} teacher={selectedTeacher} />
+      <EditTeacherModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} teacher={selectedTeacher} onTeacherUpdated={handleTeacherUpdated} />
+    </div>
+  )
+}
+
+

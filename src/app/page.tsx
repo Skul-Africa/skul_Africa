@@ -1,232 +1,368 @@
-// src/app/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   Sun,
   Moon,
-  ChevronRight,
-  ChevronLeft,
-  LogIn,
-  UserPlus,
-  BookOpen,
+  GraduationCap,
   Users,
-  Globe2,
+  BookOpen,
+  Target,
+  Award,
+  PlayCircle,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 
-export default function EduCentralLandingLite() {
-  const pathname = usePathname();
-  const [dark, setDark] = useState(true);
-  const [index, setIndex] = useState(0);
+/** ✅ Replace with your own image URLs */
+const HERO_IMAGE_URLS = [
+  "/group-of-children.jpg",
+  "/one child.jpg",
+  "/girl writing.jpg",
+  "/two kids.jpg",
+];
 
-  const slides = [
-    {
-      title: "Our Mission",
-      text: "Empowering African learners with quality, context-aware education.",
-      img: "one child.jpg",
+const orbVariants = {
+  hidden: { opacity: 0, scale: 0.95 },
+  show: (i: number) => ({
+    opacity: [0, 0.7, 0.5],
+    y: [0, -12 - i * 4, 0],
+    x: [0, i * 6, 0],
+    transition: {
+      duration: 6 + i * 0.6,
+      repeat: Infinity,
+      repeatType: "mirror" as const,
+      delay: i * 0.5,
     },
-    {
-      title: "Our Vision",
-      text: "A future where every child in Africa learns without limits.",
-      img: "group-of-children.jpg",
-    },
-    {
-      title: "Achievements",
-      text: "10k+ learners reached · 250+ partner schools.",
-      img: "two kids.jpg",
-    },
-    {
-      title: "Our Commitment",
-      text: "Partnering with educators & NGOs to respect context & culture.",
-      img: "https://images.unsplash.com/photo-1521791136064-7986c2920216?q=80&w=1400&auto=format&fit=crop",
-    },
-  ];
+  }),
+};
+
+export default function Page() {
+  const [dark, setDark] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const saved = localStorage.getItem("theme");
+    if (saved) return saved === "dark";
+    return (
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    );
+  });
+
+  const [currentImage, setCurrentImage] = useState(0);
+
+  // ✅ Rotate hero images every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % HERO_IMAGE_URLS.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => setIndex((i) => (i + 1) % slides.length), 6000);
-    return () => clearInterval(timer);
-  }, [slides.length]);
+    document.documentElement.classList.toggle("dark", dark);
+    localStorage.setItem("theme", dark ? "dark" : "light");
+  }, [dark]);
 
-  const prev = () => setIndex((i) => (i - 1 + slides.length) % slides.length);
-  const next = () => setIndex((i) => (i + 1) % slides.length);
-  const activeSlide = slides[index];
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const mq =
+        window.matchMedia &&
+        window.matchMedia("(prefers-reduced-motion: reduce)");
+      setReduceMotion(Boolean(mq && mq.matches));
+    }
+  }, []);
 
   return (
     <div
       className={`min-h-screen transition-colors duration-500 ${
-        dark
-          ? "bg-slate-900 text-white"
-          : "bg-gradient-to-br from-blue-50 via-white to-indigo-100 text-slate-900"
+        dark ? "bg-slate-900 text-white" : "bg-white text-slate-900"
       }`}
     >
-      {/* HEADER */}
-      <header className="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <img
-            src="/icon.png"
-            alt="Skul Africa"
-            className="w-10 h-10 rounded-md"
-            loading="lazy"
-          />
-          <span className="font-semibold text-lg">Skul Africa</span>
+      {/* ✨ Floating Orbs */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        {!reduceMotion &&
+          [0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              custom={i}
+              initial="hidden"
+              animate="show"
+              variants={orbVariants}
+              className={`absolute rounded-full ${
+                i === 0
+                  ? "w-56 h-56 left-6 top-10 bg-blue-400/20"
+                  : i === 1
+                  ? "w-72 h-72 right-8 bottom-12 bg-indigo-400/12"
+                  : "w-64 h-64 left-1/2 top-1/3 -translate-x-1/2 bg-purple-500/10"
+              }`}
+              style={{ filter: "blur(36px)", willChange: "transform, opacity" }}
+            />
+          ))}
+      </div>
+
+      {/* 🌍 NAVBAR */}
+      <header className="max-w-7xl mx-auto px-6 md:px-8 py-5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              dark
+                ? "bg-blue-300 text-blue-900"
+                : "bg-blue-600 text-white shadow"
+            }`}
+          >
+            <GraduationCap className="w-5 h-5" />
+          </div>
+          <div className="leading-tight">
+            <div className="font-semibold">Skul Africa</div>
+            <div className="text-xs opacity-70 -mt-0.5">
+              Smarter school simplified 
+            </div>
+          </div>
         </div>
 
-        {/* Nav Links */}
-        <nav className="hidden md:flex items-center gap-5 text-sm font-medium">
-          <Link href="/about" className="hover:text-blue-400">About</Link>
-          <Link href="/community" className="hover:text-blue-400">Community</Link>
-          <Link href="/courses" className="hover:text-blue-400">Courses</Link>
-          <Link href="/programs" className="hover:text-blue-400">Programs</Link>
-          <Link href="/faq" className="hover:text-blue-400">FAQ</Link>
+        <nav className="hidden lg:flex items-center gap-6 text-sm">
+          <Link href="/about" className="hover:underline">
+            About
+          </Link>
+          <Link href="/community" className="hover:underline">
+            community
+          </Link>
+          <Link href="/courses" className="hover:underline">
+            courses
+          </Link>
+          <Link href="/faq" className="hover:underline">
+           FAQ
+          </Link>
         </nav>
 
-        {/* Controls */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setDark((d) => !d)}
-            className="p-2 rounded-full bg-white/10"
             aria-label="Toggle theme"
+            onClick={() => setDark((d) => !d)}
+            className="p-2 rounded-full focus-visible:outline focus-visible:outline-2"
           >
-            {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {dark ? (
+              <Sun className="w-5 h-5 text-yellow-300" />
+            ) : (
+              <Moon className="w-5 h-5 text-slate-700" />
+            )}
           </button>
-
           <Link
             href="/login_select"
-            className="hidden sm:block px-3 py-2 text-sm border rounded-full hover:bg-white/10"
+            className="sm:inline-block px-3 py-1 rounded-full border border-current/10 text-sm"
           >
-            <LogIn className="inline w-4 h-4 mr-1" /> Login
+            Login
           </Link>
           <Link
             href="/signup_select"
-            className="hidden sm:block px-3 py-2 text-sm font-semibold rounded-full bg-blue-400 text-blue-900 hover:bg-blue-300"
+            className="inline-block px-4 py-2 rounded-full bg-blue-500 text-white text-sm font-medium shadow-sm"
           >
-            <UserPlus className="inline w-4 h-4 mr-1" /> Join
+            Get Started
           </Link>
         </div>
       </header>
 
-      {/* HERO / SLIDE */}
-      <section className="relative flex flex-col items-center text-center py-10">
-        <div className="relative w-[90%] max-w-xl h-[260px] rounded-2xl overflow-hidden shadow-lg">
-          <img
-            src={activeSlide.img}
-            alt={activeSlide.title}
-            className="w-full h-full object-cover transition-all duration-700"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-4">
-            <h2 className="font-bold text-lg">{activeSlide.title}</h2>
-            <p className="text-xs text-white/90 mt-1">{activeSlide.text}</p>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="flex gap-3 mt-4">
-          <button
-            onClick={prev}
-            className="p-2 rounded-full bg-black/30 hover:bg-black/40"
+      {/* 🧠 HERO SECTION */}
+      <main className="max-w-7xl mx-auto px-6 md:px-8 py-10 md:py-20 flex flex-col-reverse md:flex-row items-center gap-10">
+        {/* LEFT: Text */}
+        <section className="md:flex-1 max-w-xl">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
           >
-            <ChevronLeft className="w-5 h-5 text-white" />
-          </button>
-          <button
-            onClick={next}
-            className="p-2 rounded-full bg-black/30 hover:bg-black/40"
-          >
-            <ChevronRight className="w-5 h-5 text-white" />
-          </button>
-        </div>
-
-        {/* CTA */}
-        <div className="mt-6 flex gap-3">
-          <Link
-            href="/about"
-            className="px-5 py-2 rounded-full border border-white/30 hover:bg-white/10"
-          >
-            Learn More
-          </Link>
-          <Link
-            href="/signup_select"
-            className="px-5 py-2 rounded-full bg-blue-400 text-blue-900 font-semibold"
-          >
-            Sign Up
-          </Link>
-        </div>
-      </section>
-
-      {/* QUICK STATS */}
-      <section className="max-w-4xl mx-auto px-6 grid grid-cols-3 text-center mt-10">
-        {[
-          ["10k+", "Students"],
-          ["250+", "Schools"],
-          ["12", "Countries"],
-        ].map(([num, label]) => (
-          <div key={label}>
-            <div className="text-2xl font-bold">{num}</div>
-            <div className="text-sm opacity-80">{label}</div>
-          </div>
-        ))}
-      </section>
-
-      {/* WHO WE SERVE */}
-      <section className="max-w-5xl mx-auto px-6 mt-12">
-        <h3 className="text-center text-xl font-bold mb-6">Who We Serve</h3>
-        <div className="grid sm:grid-cols-3 gap-4">
-          {[
-            { icon: Users, title: "Students", text: "Accessible lessons for low-bandwidth use." },
-            { icon: BookOpen, title: "Schools", text: "Simple tools for measuring progress." },
-            { icon: Globe2, title: "Teachers", text: "Training & AI lesson summaries." },
-          ].map(({ icon: Icon, title, text }) => (
-            <div
-              key={title}
-              className={`p-5 rounded-xl shadow ${
-                dark ? "bg-white/5" : "bg-white"
-              }`}
-            >
-              <Icon
-                className={`w-6 h-6 mb-2 mx-auto ${
-                  dark ? "text-blue-300" : "text-blue-600"
-                }`}
-              />
-              <h4 className="font-semibold">{title}</h4>
-              <p className="text-xs opacity-80 mt-1">{text}</p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium bg-white/10 mb-4">
+              <BookOpen className="w-4 h-4" />
+              <span>How learning works</span>
             </div>
-          ))}
-        </div>
+
+            <h1 className="text-3xl md:text-4xl font-extrabold leading-tight mb-4">
+              Skul Africa — manage schools effortlessly,
+              <span className="text-blue-400"> built for Africa.</span>
+            </h1>
+
+            <p className="text-base text-slate-700 dark:text-slate-300 mb-6">
+              One dashboard for students, teachers and administrators. Fast
+              sync, offline-first caching, and region-aware features so your
+              school stays running even with spotty connectivity.
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/signup_select"
+                className="px-5 py-3 rounded-full bg-blue-500 text-white font-semibold shadow-sm transform hover:-translate-y-0.5 transition"
+              >
+                Start Free
+              </Link>
+              <Link
+                href="/login_select"
+                className="px-4 py-3 rounded-full border border-white/10 text-sm"
+              >
+                Demo
+              </Link>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-2xl p-3 bg-white/10">
+                <div className="text-xs opacity-80">Monthly Goal</div>
+                <div className="font-bold">40 hrs</div>
+              </div>
+              <div className="rounded-2xl p-3 bg-white/10">
+                <div className="text-xs opacity-80">Next</div>
+                <div className="font-bold">Physics Lab • 2:00 PM</div>
+              </div>
+              <div className="rounded-2xl p-3 bg-white/10">
+                <div className="text-xs opacity-80">Top Performer</div>
+                <div className="font-bold">Recognition</div>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* RIGHT: Rotating Images */}
+        <section className="md:flex-1 flex items-center justify-center w-full">
+          <motion.div
+            key={currentImage}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.9 }}
+            className="relative w-[320px] md:w-[420px] aspect-square"
+          >
+            <Image
+              src={HERO_IMAGE_URLS[currentImage]}
+              alt="School hero"
+              fill
+              sizes="(max-width: 768px) 320px, 420px"
+              className="object-cover rounded-2xl shadow-2xl"
+              priority
+            />
+
+            {/* Floating Badge */}
+            <motion.div
+              whileHover={{ y: -4 }}
+              className="absolute left-3 bottom-4 rounded-xl bg-white/90 dark:bg-black/70 px-3 py-2 shadow-md flex items-center gap-3 text-xs"
+            >
+              <PlayCircle className="w-5 h-5 text-green-500" />
+              <div>
+                <div className="font-semibold text-xs">Current Course</div>
+                <div className="text-[11px] opacity-80">
+                  Advanced Mathematics
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        </section>
+      </main>
+
+      {/* 🌟 FEATURES */}
+      <section className="max-w-7xl mx-auto px-6 md:px-8 py-10">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+        >
+          <FeatureCard
+            icon={Users}
+            title="Manage Users"
+            desc="Students, teachers and staff — centralised profiles and roles."
+            dark={dark}
+          />
+          <FeatureCard
+            icon={Target}
+            title="Automate Tasks"
+            desc="Attendance, grading and reports with fewer clicks."
+            dark={dark}
+          />
+          <FeatureCard
+            icon={Award}
+            title="Recognize Growth"
+            desc="Badges, awards and performance tracking."
+            dark={dark}
+          />
+        </motion.div>
       </section>
 
       {/* CTA */}
-      <section className="text-center mt-12 py-10">
-        <h3 className="text-xl font-bold mb-3">Be Part of the Change</h3>
-        <p className="max-w-md mx-auto mb-5 opacity-80 text-sm">
-          Join students, teachers, and partners shaping the future of education.
-        </p>
-        <div className="flex justify-center gap-3">
-          <Link
-            href="/signup_select"
-            className="px-5 py-2 rounded-full bg-blue-400 text-blue-900 font-semibold"
-          >
-            Get Started
-          </Link>
-          <Link href="/login_select" className="px-5 py-2 rounded-full border">
-            Learn More
-          </Link>
+      <section className="py-12 px-6 md:px-8">
+        <div className="max-w-3xl mx-auto text-center rounded-2xl p-8 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
+          <h3 className="text-2xl font-semibold mb-2">
+            Ready to make school life simpler?
+          </h3>
+          <p className="opacity-90 mb-4">
+            focuse more on educating, we handle the rest, experience a next level of academic perfomance today welcome onboard
+          </p>
+          <div className="flex justify-center gap-3">
+            <Link
+              href="/signup_select"
+              className="px-6 py-3 bg-white text-blue-700 rounded-full font-semibold"
+            >
+              Start Free
+            </Link>
+            <Link
+              href="/contact"
+              className="px-6 py-3 border border-white/30 rounded-full"
+            >
+              Contact Sales
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="text-center py-6 text-sm opacity-80 border-t border-white/10">
-        <div className="flex justify-center gap-5 mb-3">
-          <Link href="/about" className="hover:text-blue-400">About</Link>
-          <Link href="/community" className="hover:text-blue-400">Community</Link>
-          <Link href="/courses" className="hover:text-blue-400">Courses</Link>
-          <Link href="/programs" className="hover:text-blue-400">Programs</Link>
-          <Link href="/faq" className="hover:text-blue-400">FAQ</Link>
+      <footer className="max-w-7xl mx-auto px-6 md:px-8 py-6 text-xs opacity-80">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div>
+            © {new Date().getFullYear()} Skul Africa — All rights reserved.
+          </div>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="hover:underline">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:underline">
+              Terms
+            </Link>
+            <Link href="/contact" className="hover:underline">
+              Contact
+            </Link>
+          </div>
         </div>
-        © {new Date().getFullYear()} Skul Africa — Empowering Learning Across Africa.
       </footer>
+    </div>
+  );
+}
+
+/* ✅ Reusable Feature Card */
+function FeatureCard({
+  icon: Icon,
+  title,
+  desc,
+  dark,
+}: {
+  icon: any;
+  title: string;
+  desc: string;
+  dark: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl p-6 shadow-sm ${
+        dark
+          ? "bg-white/5 border border-white/10"
+          : "bg-white border border-slate-100"
+      }`}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600">
+          <Icon className="w-5 h-5" />
+        </div>
+        <div className="font-semibold">{title}</div>
+      </div>
+      <div className="text-sm opacity-80">{desc}</div>
     </div>
   );
 }
