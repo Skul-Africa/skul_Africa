@@ -42,6 +42,22 @@ export default function DashboardPage() {
   }, [darkMode]);
 
   const toggleTheme = () => setDarkMode(!darkMode);
+function validateToken() {
+  const token = getAuthToken();
+  if (!token) return { valid: false, reason: "missing" };
+
+  try {
+    const decoded: any = jwtDecode(token);
+    const now = Date.now() / 1000; // seconds
+    if (decoded.exp && decoded.exp < now) {
+      return { valid: false, reason: "expired" };
+    }
+    return { valid: true, decoded };
+  } catch (err) {
+    console.error("❌ Invalid token:", err);
+    return { valid: false, reason: "invalid" };
+  }
+}
 
   // =======================
   // SCHOOL NAME (from JWT)
@@ -90,6 +106,48 @@ export default function DashboardPage() {
     localStorage.setItem(key, JSON.stringify(data));
     return data;
   }
+  useEffect(() => {
+  async function fetchAll() {
+    const tokenCheck = validateToken();
+
+    if (!tokenCheck.valid) {
+      console.warn(`⚠️ Token check failed (${tokenCheck.reason}). Redirecting or skipping fetch.`);
+      setStudentError(true);
+      setTeacherError(true);
+      setClassError(true);
+
+      // Optional: redirect to login
+      // window.location.href = "/login";
+
+      setStudentLoading(false);
+      setTeacherLoading(false);
+      setClassLoading(false);
+      return;
+    }
+
+    try {
+      const students = await safeFetch("https://skul-africa.onrender.com/api/v1/student", "students_cache");
+      const teachers = await safeFetch("https://skul-africa.onrender.com/api/v1/teacher", "teachers_cache");
+      const classes = await safeFetch("https://skul-africa.onrender.com/api/v1/classrooms", "classes_cache");
+
+      setStudentCount(students?.students?.length || students?.length || 0);
+      setTeacherCount(teachers?.teachers?.length || teachers?.length || 0);
+      setClassCount(classes?.classrooms?.length || classes?.length || 0);
+    } catch (err) {
+      console.error("❌ Fetch error:", err);
+      setStudentError(true);
+      setTeacherError(true);
+      setClassError(true);
+    } finally {
+      setStudentLoading(false);
+      setTeacherLoading(false);
+      setClassLoading(false);
+    }
+  }
+
+  fetchAll();
+}, []);
+
 
   // =======================
   // STUDENTS / TEACHERS / CLASSES
@@ -134,6 +192,7 @@ export default function DashboardPage() {
   // RENDER
   // =======================
   return (
+    
     <div className={`min-h-screen p-4 sm:p-6 transition-colors duration-500 ${darkMode ? "bg-blue-950 text-gray-100" : "bg-gray-50 text-gray-800"}`}>
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
