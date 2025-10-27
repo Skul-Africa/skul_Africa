@@ -120,6 +120,32 @@ export default function StudentFinanceDetails() {
       console.warn('fetchStudent error', err);
     }
   }
+  window.addEventListener('online', async () => {
+    const pending = JSON.parse(localStorage.getItem('pending_dues') || '[]');
+    if (pending.length === 0) return;
+
+    const token = localStorage.getItem('school_token');
+    if (!token) return;
+
+    for (const item of pending) {
+      try {
+        await fetch(item.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(item.payload),
+        });
+      } catch (e) {
+        console.warn('Retry failed for', item);
+      }
+    }
+
+    localStorage.removeItem('pending_dues');
+    console.log('✅ Pending dues synced successfully.');
+  });
+
 
   async function handleSetTotalDue(e: React.FormEvent) {
     e.preventDefault();
@@ -128,39 +154,59 @@ export default function StudentFinanceDetails() {
     const token = localStorage.getItem('school_token');
     if (!token) return alert('Login required.');
 
+    const payload = {
+      totalDue: Number(totalDueInput),
+      term,
+    };
+
+    const url = `${API_BASE}/api/v1/students/${studentId}/finance/set-total-due`;
+
     try {
-      const res = await fetch(
-        `${API_BASE}/api/v1/students/${studentId}/finance/set-total-due`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            totalDue: Number(totalDueInput),
-            term,
-          }),
-        }
-      );
+      // ✅ If offline, save to localStorage for later sync
+      if (!navigator.onLine) {
+        const pending = JSON.parse(localStorage.getItem('pending_dues') || '[]');
+        pending.push({ url, payload, studentId, timestamp: Date.now() });
+        localStorage.setItem('pending_dues', JSON.stringify(pending));
 
-      if (!res.ok) throw new Error(`Failed (${res.status})`);
+        alert('You are offline. Change saved locally and will sync later.');
+        return;
+      }
 
-      const updated = await res.json();
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        console.warn('Backend responded with error', data);
+        throw new Error(`Failed (${res.status})`);
+      }
+
+      // ✅ Update UI
       setStudent((prev) =>
-        prev ? { ...prev, totalDue: updated.totalDue ?? Number(totalDueInput) } : prev
+        prev ? { ...prev, totalDue: data?.totalDue ?? payload.totalDue } : prev
       );
 
       setShowDueModal(false);
       setTotalDueInput('');
-
       fetchRecords(true);
     } catch (err) {
       console.warn('Failed to set total due', err);
-      alert('Failed to update total due');
+      alert('Failed to update total due (saved locally for retry)');
+
+      // ✅ Save failed request for retry
+      const pending = JSON.parse(localStorage.getItem('pending_dues') || '[]');
+      pending.push({ url, payload, studentId, timestamp: Date.now() });
+      localStorage.setItem('pending_dues', JSON.stringify(pending));
     }
   }
+
 
   async function fetchRecords(force = false) {
     if (!studentId) return;

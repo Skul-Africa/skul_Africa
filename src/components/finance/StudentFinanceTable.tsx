@@ -5,7 +5,6 @@ import { Search, Printer, RefreshCw } from 'lucide-react';
 import StudentFinanceRow from './ StudentFinanceRow';
 import { useStudentFinance } from '@/app/context/StudentFinanceContext';
 
-
 type TermOption = 'FIRST_TERM' | 'SECOND_TERM' | 'THIRD_TERM' | '';
 
 type StudentSummary = {
@@ -27,13 +26,12 @@ export default function StudentFinanceTable({ darkMode }: { darkMode: boolean })
   const [students, setStudents] = useState<StudentSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [classroomMap, setClassroomMap] = useState<Record<number, string>>({});
-
   const { summaries, setSummary } = useStudentFinance();
 
   const API_BASE = 'https://skul-africa.onrender.com';
   const getAuthToken = () => localStorage.getItem('school_token');
 
-  // ✅ Fetch classrooms (with offline cache)
+  // ✅ Fetch classrooms
   async function fetchClassrooms() {
     try {
       const cached = localStorage.getItem('cached_classrooms');
@@ -59,8 +57,8 @@ export default function StudentFinanceTable({ darkMode }: { darkMode: boolean })
     }
   }
 
-  // ✅ Fetch all students
-  async function fetchStudents(force = false) {
+  // ✅ Fetch students + finance summaries
+  async function fetchStudents(force = false, selectedTerm: TermOption = term) {
     setLoading(true);
     setError(null);
 
@@ -68,20 +66,25 @@ export default function StudentFinanceTable({ darkMode }: { darkMode: boolean })
       const token = getAuthToken();
       if (!token) throw new Error('No token found');
 
-      // 1️⃣ Fetch student list
-      const res = await fetch(
-        `${API_BASE}/api/v1/student?page=${page}&limit=${pageSize}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const cachedKey = `cached_students_${selectedTerm}`;
+      if (!force) {
+        const cached = localStorage.getItem(cachedKey);
+        if (cached) {
+          setStudents(JSON.parse(cached));
+          setTotal(JSON.parse(cached).length);
+          return;
+        }
+      }
 
+      // Fetch students from API
+      const res = await fetch(`${API_BASE}/api/v1/student?page=${page}&limit=${pageSize}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!res.ok) throw new Error('Failed to fetch students');
+
       const data = await res.json();
+      const studentList = Array.isArray(data) ? data : data.students || data.data?.students || [];
 
-      const studentList = Array.isArray(data)
-        ? data
-        : data.students || data.data?.students || [];
-
-      // 2️⃣ Fetch finance summaries for each student
       const updatedStudents = await Promise.all(
         studentList.map(async (s: any) => {
           let totalPaid = 0;
@@ -89,30 +92,26 @@ export default function StudentFinanceTable({ darkMode }: { darkMode: boolean })
 
           try {
             const financeRes = await fetch(
-              `${API_BASE}/api/v1/finance/student/${s.id}/summary`,
+              `${API_BASE}/api/v1/students/${s.id}/finance/summary?term=${selectedTerm || 'FIRST_TERM'}`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             if (financeRes.ok) {
               const financeData = await financeRes.json();
+              console.log('financeData', s.id, selectedTerm, financeData);
               totalPaid = financeData.totalPaid ?? 0;
               totalDue = financeData.totalDue ?? 0;
-
-              // ✅ Store it in context
               setSummary(s.id, { totalPaid, totalDue });
             }
-          } catch (err) {
-            console.warn(`⚠️ Failed to fetch finance for student ${s.id}`);
+
+          } catch {
+            console.warn(`⚠️ Failed to fetch finance for student ${s.id} — using cached if available`);
           }
 
           return {
             id: s.id,
             name: s.fullName || `${s.firstName || ''} ${s.lastName || ''}`.trim(),
-            profileImage: s.profilePicture || '/images/baby-astronaut.png',
-            className:
-              s.classroom?.name ||
-              classroomMap[s.classroomId] ||
-              s.pendingClassName ||
-              '—',
+            profileImage: s.profilePicture || '/default image.png',
+            className: s.classroom?.name || classroomMap[s.classroomId] || s.pendingClassName || '—',
             totalPaid,
             totalDue,
           };
@@ -121,14 +120,21 @@ export default function StudentFinanceTable({ darkMode }: { darkMode: boolean })
 
       setStudents(updatedStudents);
       setTotal(updatedStudents.length);
+      localStorage.setItem(cachedKey, JSON.stringify(updatedStudents));
     } catch (err: any) {
-      console.error('⚠️ Fetch failed:', err.message);
-      setError('Offline mode or fetch error — showing cached data');
+      setError('Offline mode — showing cached data');
+      const cached = localStorage.getItem(`cached_students_${selectedTerm}`);
+      if (cached) {
+        setStudents(JSON.parse(cached));
+        setTotal(JSON.parse(cached).length);
+      }
     } finally {
       setLoading(false);
     }
   }
 
+
+  // ✅ useEffect runs at top-level, not inside a function
   useEffect(() => {
     fetchClassrooms();
     fetchStudents(true);
@@ -136,12 +142,13 @@ export default function StudentFinanceTable({ darkMode }: { darkMode: boolean })
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  // ✅ JSX must be returned from component, not from inside a function
   return (
     <div
       className={`rounded-xl shadow ${darkMode ? 'bg-blue-900 text-gray-100' : 'bg-white text-gray-800'
         }`}
     >
-      {/* Header */}
+      {/* --- HEADER --- */}
       <div className="flex flex-wrap gap-3 items-center justify-between p-4 border-b">
         <h3 className="font-semibold text-base sm:text-lg">Student Finance</h3>
 
@@ -167,7 +174,7 @@ export default function StudentFinanceTable({ darkMode }: { darkMode: boolean })
             />
           </div>
 
-          {/* Term Filter */}
+          {/* Term Buttons */}
           {[
             { label: 'First', value: 'FIRST_TERM' },
             { label: 'Second', value: 'SECOND_TERM' },
@@ -178,6 +185,7 @@ export default function StudentFinanceTable({ darkMode }: { darkMode: boolean })
               onClick={() => {
                 setTerm(value as TermOption);
                 setPage(1);
+                fetchStudents(true, value as TermOption); // ✅ pass the term explicitly
               }}
               className={`px-3 py-1 rounded-full text-xs sm:text-sm transition ${term === value
                 ? 'bg-indigo-600 text-white'
@@ -215,7 +223,7 @@ export default function StudentFinanceTable({ darkMode }: { darkMode: boolean })
         </div>
       </div>
 
-      {/* Table */}
+      {/* --- TABLE --- */}
       <div className="p-3 sm:p-4 overflow-x-auto">
         {loading ? (
           <div className="text-center py-20">
@@ -279,3 +287,4 @@ export default function StudentFinanceTable({ darkMode }: { darkMode: boolean })
     </div>
   );
 }
+
