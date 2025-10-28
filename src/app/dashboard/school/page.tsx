@@ -42,56 +42,48 @@ export default function DashboardPage() {
   }, [darkMode]);
 
   const toggleTheme = () => setDarkMode(!darkMode);
-  function validateToken() {
-    const token = getAuthToken();
-    if (!token) return { valid: false, reason: "missing" };
+function validateToken() {
+  const token = getAuthToken();
+  if (!token) return { valid: false, reason: "missing" };
 
-    try {
-      const decoded: any = jwtDecode(token);
-      const now = Date.now() / 1000; // seconds
-      if (decoded.exp && decoded.exp < now) {
-        return { valid: false, reason: "expired" };
-      }
-      return { valid: true, decoded };
-    } catch (err) {
-      console.error("❌ Invalid token:", err);
-      return { valid: false, reason: "invalid" };
+  try {
+    const decoded: any = jwtDecode(token);
+    const now = Date.now() / 1000; // seconds
+    if (decoded.exp && decoded.exp < now) {
+      return { valid: false, reason: "expired" };
     }
+    return { valid: true, decoded };
+  } catch (err) {
+    console.error("❌ Invalid token:", err);
+    return { valid: false, reason: "invalid" };
   }
-  async function refreshAccessToken() {
-    const refreshToken = localStorage.getItem("school_refresh_token");
-    if (!refreshToken) {
-      console.warn("⚠️ No refresh token found.");
-      return null;
-    }
+}
+const getRefreshToken = () => localStorage.getItem("school_refresh_token");
 
-    try {
-      const res = await fetch("https://skul-africa.onrender.com/api/v1/schools/refresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
+async function refreshAuthToken() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
 
-      if (!res.ok) {
-        console.error("❌ Refresh failed:", res.status);
-        localStorage.removeItem("school_token");
-        localStorage.removeItem("school_refresh_token");
-        // window.location.href = "/login"; // optional redirect
-        return null;
-      }
+  try {
+    const res = await fetch("https://skul-africa.onrender.com/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
 
-      const data = await res.json();
-      console.log("✅ Token refreshed successfully");
+    if (!res.ok) throw new Error("Refresh failed");
+    const data = await res.json();
 
-      localStorage.setItem("school_token", data.accessToken);
-      localStorage.setItem("school_refresh_token", data.refreshToken);
-
-      return data.accessToken;
-    } catch (err) {
-      console.error("❌ Refresh token error:", err);
-      return null;
-    }
+    // Assuming API returns { accessToken, refreshToken }
+    localStorage.setItem("school_token", data.accessToken);
+    localStorage.setItem("school_refresh_token", data.refreshToken);
+    console.log("✅ Token refreshed");
+    return data.accessToken;
+  } catch (err) {
+    console.error("❌ Failed to refresh token:", err);
+    return null;
   }
+}
 
   // =======================
   // SCHOOL NAME (from JWT)
@@ -118,90 +110,101 @@ export default function DashboardPage() {
   // =======================
   // COMMON FETCH FUNCTION
   // =======================
-  async function safeFetch(url: string, key: string) {
-    if (!navigator.onLine) {
-      console.warn(`⚠️ Offline: loading cached ${key} data`);
-      const cached = localStorage.getItem(key);
-      return cached ? JSON.parse(cached) : [];
-    }
+ async function safeFetch(url: string, key: string) {
+  if (!navigator.onLine) {
+    console.warn(`⚠️ Offline: loading cached ${key} data`);
+    const cached = localStorage.getItem(key);
+    return cached ? JSON.parse(cached) : [];
+  }
 
-    const token = getAuthToken();
+  const token = getAuthToken();
+
+  try {
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });
-    // If token is expired or unauthorized, attempt refresh once
+
+    // Handle expired token or 401
     if (res.status === 401 || res.status === 403) {
-      console.warn("🔄 Token expired, attempting refresh...");
+      console.warn(`⚠️ Token expired or invalid. Trying refresh...`);
+      const newToken = await refreshAuthToken();
 
-      const newToken = await refreshAccessToken();
-      if (!newToken) throw new Error("Session expired, please log in again.");
-
-
-
-      // Retry the original request
-      const retryRes = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!retryRes.ok) throw new Error(`Failed to fetch ${key} after refresh`);
-      const retryData = await retryRes.json();
-      localStorage.setItem(key, JSON.stringify(retryData));
-      return retryData;
+      if (newToken) {
+        const retry = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${newToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!retry.ok) throw new Error(`Retry failed: ${retry.status}`);
+        const retryData = await retry.json();
+        localStorage.setItem(key, JSON.stringify(retryData));
+        return retryData;
+      } else {
+        throw new Error("Unauthorized — please log in again");
+      }
     }
 
-    if (!res.ok) throw new Error(`Failed to fetch ${key}: ${res.status}`);
-
+    if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
     const data = await res.json();
     localStorage.setItem(key, JSON.stringify(data));
     return data;
+
+  } catch (err) {
+    console.error(`❌ Fetch error for ${key}:`, err);
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      console.warn(`⚠️ Using cached ${key} due to error`);
+      return JSON.parse(cached);
+    }
+    return [];
   }
+}
+
   useEffect(() => {
-    async function fetchAll() {
-      const tokenCheck = validateToken();
+  async function fetchAll() {
+    const tokenCheck = validateToken();
 
-      if (!tokenCheck.valid) {
-        console.warn(`⚠️ Token check failed (${tokenCheck.reason}). Redirecting or skipping fetch.`);
-        setStudentError(true);
-        setTeacherError(true);
-        setClassError(true);
+    if (!tokenCheck.valid) {
+      console.warn(`⚠️ Token check failed (${tokenCheck.reason}). Redirecting or skipping fetch.`);
+      setStudentError(true);
+      setTeacherError(true);
+      setClassError(true);
 
-        // Optional: redirect to login
-        // window.location.href = "/login";
+      // Optional: redirect to login
+      // window.location.href = "/login";
 
-        setStudentLoading(false);
-        setTeacherLoading(false);
-        setClassLoading(false);
-        return;
-      }
-
-      try {
-        const students = await safeFetch("https://skul-africa.onrender.com/api/v1/student", "students_cache");
-        const teachers = await safeFetch("https://skul-africa.onrender.com/api/v1/teacher", "teachers_cache");
-        const classes = await safeFetch("https://skul-africa.onrender.com/api/v1/classrooms", "classes_cache");
-
-        setStudentCount(students?.students?.length || students?.length || 0);
-        setTeacherCount(teachers?.teachers?.length || teachers?.length || 0);
-        setClassCount(classes?.classrooms?.length || classes?.length || 0);
-      } catch (err) {
-        console.error("❌ Fetch error:", err);
-        setStudentError(true);
-        setTeacherError(true);
-        setClassError(true);
-      } finally {
-        setStudentLoading(false);
-        setTeacherLoading(false);
-        setClassLoading(false);
-      }
+      setStudentLoading(false);
+      setTeacherLoading(false);
+      setClassLoading(false);
+      return;
     }
 
-    fetchAll();
-  }, []);
+    try {
+      const students = await safeFetch("https://skul-africa.onrender.com/api/v1/student", "students_cache");
+      const teachers = await safeFetch("https://skul-africa.onrender.com/api/v1/teacher", "teachers_cache");
+      const classes = await safeFetch("https://skul-africa.onrender.com/api/v1/classrooms", "classes_cache");
+
+      setStudentCount(students?.students?.length || students?.length || 0);
+      setTeacherCount(teachers?.teachers?.length || teachers?.length || 0);
+      setClassCount(classes?.classrooms?.length || classes?.length || 0);
+    } catch (err) {
+      console.error("❌ Fetch error:", err);
+      setStudentError(true);
+      setTeacherError(true);
+      setClassError(true);
+    } finally {
+      setStudentLoading(false);
+      setTeacherLoading(false);
+      setClassLoading(false);
+    }
+  }
+
+  fetchAll();
+}, []);
 
 
   // =======================
@@ -247,7 +250,7 @@ export default function DashboardPage() {
   // RENDER
   // =======================
   return (
-
+    
     <div className={`min-h-screen p-4 sm:p-6 transition-colors duration-500 ${darkMode ? "bg-blue-950 text-gray-100" : "bg-gray-50 text-gray-800"}`}>
       {/* Top Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -345,14 +348,14 @@ export default function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
 
-
+           
 
           </div>
         </div>
       </div>
-      <div className="mt-8">
-        <StudentFinanceTable darkMode={darkMode} />
-      </div>
+       <div className="mt-8">
+              <StudentFinanceTable darkMode={darkMode} />
+            </div>
     </div>
   );
 }
@@ -398,3 +401,4 @@ function StatsCard({
     </div>
   );
 }
+
