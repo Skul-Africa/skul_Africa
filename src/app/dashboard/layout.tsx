@@ -88,7 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         router.push("/dashboard/events");
         break;
       case "settings":
-        router.push("/dashboard/school");
+        router.push("/dashboard/settings");
         break;
       case "news":
         router.push("/dashboard/school");
