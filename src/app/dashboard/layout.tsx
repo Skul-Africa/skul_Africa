@@ -90,6 +90,7 @@ export default function DashboardLayout({
     if (pathname.includes("/teacher")) return "teachers"
     if (pathname.includes("/courses")) return "subjects"
     if (pathname.includes("/events")) return "events"
+    if (pathname.includes("/classes")) return "classes"
     if (pathname.includes("/school")) return "dashboard"
     return "dashboard"
   }
@@ -108,8 +109,7 @@ export default function DashboardLayout({
         router.push("/dashboard/school")
         break
       case "classes":
-        // For now, redirect to dashboard
-        router.push("/dashboard/school")
+        router.push("/dashboard/classes")
         break
       case "subjects":
         router.push("/dashboard/courses")
