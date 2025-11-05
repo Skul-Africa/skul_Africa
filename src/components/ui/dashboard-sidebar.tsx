@@ -1,8 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import { Poppins } from "next/font/google"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Poppins } from "next/font/google";
 import {
   Home,
   Users,
@@ -12,149 +13,173 @@ import {
   Settings,
   Newspaper,
   LogOut,
-  Menu,
-} from "lucide-react"
+  WifiOff,
+  MessageSquare,
+} from "lucide-react";
 
 const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
-})
+});
 
 interface DashboardSidebarProps {
-  isMobileMenuOpen: boolean
-  setIsMobileMenuOpen: (open: boolean) => void
-  currentView?: string
-  onNavigate?: (view: string) => void
+  currentView?: string;
+  onNavigate?: (view: string) => void;
 }
 
 export default function DashboardSidebar({
-  isMobileMenuOpen,
-  setIsMobileMenuOpen,
   currentView = "students",
   onNavigate,
 }: DashboardSidebarProps) {
-  const handleNavigation = (view: string) => {
-    if (onNavigate) {
-      onNavigate(view)
+  const router = useRouter();
+  const [schoolName, setSchoolName] = useState("School Admin");
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let name: string | null = localStorage.getItem("school_name");
+
+    if (!name) {
+      const token = localStorage.getItem("school_token");
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          name =
+            payload?.schoolName ||
+            payload?.school ||
+            payload?.name ||
+            payload?.school_name ||
+            "School Admin";
+        } catch {
+          name = "School Admin";
+        }
+      } else {
+        name = "School Admin";
+      }
     }
-  }
+
+    setSchoolName(name || "School Admin");
+    localStorage.setItem("school_name", name || "School Admin");
+
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    setIsOffline(!navigator.onLine);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    if (confirm("Are you sure you want to logout?")) {
+      localStorage.clear();
+      router.push("/");
+    }
+  };
+
+  const handleNavigation = (view: string) => {
+    if (onNavigate) onNavigate(view);
+  };
+
+  const menuItems = [
+    { key: "dashboard", label: "Dashboard", icon: Home },
+    { key: "students", label: "Students", icon: Users },
+    { key: "teachers", label: "Teachers", icon: User },
+    { key: "classes", label: "Classes", icon: Calendar },
+    { key: "subjects", label: "Subjects", icon: BookOpen },
+    { key: "events", label: "Events", icon: Calendar },
+    { key: "settings", label: "Settings", icon: Settings },
+    { key: "news", label: "News", icon: Newspaper },
+    { key: "feedback", label: "Feedback", icon: MessageSquare },
+  ];
 
   return (
-    <aside
-      className={`flex flex-col justify-between bg-[#073B7F] text-white w-16 sm:w-48 h-screen fixed left-0 top-0 transition-all duration-300 z-40
-      ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"}`}
-    >
-      {/* Mobile menu toggle */}
-      <button className="sm:hidden absolute right-2 top-2 p-1" onClick={() => setIsMobileMenuOpen(false)}>
-        <Menu size={24} className="text-white" />
-      </button>
+    <>
+      {/* 📱 Bottom Navbar (Mobile Only) */}
+      <nav className="sm:hidden fixed bottom-0 left-0 w-full bg-[#073B7F] text-white flex justify-around items-center h-14 shadow-lg z-50 overflow-x-auto">
+        {menuItems.map(({ key, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => handleNavigation(key)}
+            className={`flex flex-col items-center text-xs ${
+              currentView === key ? "text-yellow-300" : "text-white"
+            }`}
+          >
+            <Icon size={20} />
+            <span className="text-[10px]">{key}</span>
+          </button>
+        ))}
+      </nav>
 
-      {/* Logo */}
-      <div>
-        <h2
-          className={`${poppins.className} flex items-center justify-center gap-3 text-lg sm:text-2xl font-semibold py-6`}
-        >
-          <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center">
-            <Image src="/logo.png" alt="Skul Africa Logo" width={28} height={28} priority />
-          </div>
-          <span className="hidden sm:inline">Skul Africa</span>
-        </h2>
+      {/* 💻 Sidebar (Desktop Only) */}
+      <aside className="hidden sm:flex flex-col justify-between bg-[#073B7F] text-white w-48 h-screen fixed left-0 top-0 transition-all duration-300 z-40">
+        {/* Logo */}
+        <div>
+          <h2
+            className={`${poppins.className} flex items-center justify-center gap-3 text-2xl font-semibold py-6`}
+          >
+            <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center">
+              <Image src="/logo.png" alt="Skul Africa Logo" width={28} height={28} priority />
+            </div>
+            <span>Skul Africa</span>
+          </h2>
 
-        {/* Menu */}
-        <nav>
-          <ul className="space-y-1">
-            <li
-              className={`flex items-center justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 cursor-pointer ${
-                currentView === "dashboard" ? "bg-white rounded-l-full text-[#073B7F]" : "hover:bg-white/10"
-              }`}
-              onClick={() => handleNavigation("dashboard")}
-            >
-              <Home size={18} />
-              <span className="hidden sm:inline text-sm">Dashboard</span>
-            </li>
-            <li
-              className={`flex items-center justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 cursor-pointer ${
-                currentView === "students" ? "bg-white rounded-l-full text-[#073B7F]" : "hover:bg-white/10"
-              }`}
-              onClick={() => handleNavigation("students")}
-            >
-              <Users size={18} />
-              <span className="hidden sm:inline text-sm font-medium">Students</span>
-            </li>
-            <li
-              className={`flex items-center justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 cursor-pointer ${
-                currentView === "teachers" ? "bg-white rounded-l-full text-[#073B7F]" : "hover:bg-white/10"
-              }`}
-              onClick={() => handleNavigation("teachers")}
-            >
-              <User size={18} />
-              <span className="hidden sm:inline text-sm">Teachers</span>
-            </li>
-            <li
-              className={`flex items-center justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 cursor-pointer ${
-                currentView === "classes" ? "bg-white rounded-l-full text-[#073B7F]" : "hover:bg-white/10"
-              }`}
-              onClick={() => handleNavigation("classes")}
-            >
-              <Calendar size={18} />
-              <span className="hidden sm:inline text-sm">Classes</span>
-            </li>
-            <li
-              className={`flex items-center justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 cursor-pointer ${
-                currentView === "subjects" ? "bg-white rounded-l-full text-[#073B7F]" : "hover:bg-white/10"
-              }`}
-              onClick={() => handleNavigation("subjects")}
-            >
-              <BookOpen size={18} />
-              <span className="hidden sm:inline text-sm">Subjects</span>
-            </li>
-            <li
-              className={`flex items-center justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 cursor-pointer ${
-                currentView === "events" ? "bg-white rounded-l-full text-[#073B7F]" : "hover:bg-white/10"
-              }`}
-              onClick={() => handleNavigation("events")}
-            >
-              <Calendar size={18} />
-              <span className="hidden sm:inline text-sm">Events</span>
-            </li>
-            <li
-              className={`flex items-center justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 cursor-pointer ${
-                currentView === "settings" ? "bg-white rounded-l-full text-[#073B7F]" : "hover:bg-white/10"
-              }`}
-              onClick={() => handleNavigation("settings")}
-            >
-              <Settings size={18} />
-              <span className="hidden sm:inline text-sm">Settings</span>
-            </li>
-            <li
-              className={`flex items-center justify-center sm:justify-start gap-0 sm:gap-2 px-3 sm:px-4 py-3 cursor-pointer ${
-                currentView === "news" ? "bg-white rounded-l-full text-[#073B7F]" : "hover:bg-white/10"
-              }`}
-              onClick={() => handleNavigation("news")}
-            >
-              <Newspaper size={18} />
-              <span className="hidden sm:inline text-sm">News & Updates</span>
-            </li>
-          </ul>
-        </nav>
-      </div>
-
-      {/* User & Logout */}
-      <div className="p-3 sm:p-4">
-        <div className="flex items-center justify-center sm:justify-start gap-0 sm:gap-3 mb-3">
-          <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-sm">C</span>
-          </div>
-          <div className="hidden sm:block">
-            <p className="font-semibold text-sm">Code Flex</p>
-            <p className="text-xs opacity-75">Admin</p>
-          </div>
+          {/* Menu */}
+          <nav>
+            <ul className="space-y-1">
+              {menuItems.map(({ key, label, icon: Icon }) => (
+                <li
+                  key={key}
+                  className={`flex items-center gap-2 px-4 py-3 cursor-pointer ${
+                    currentView === key
+                      ? "bg-white rounded-l-full text-[#073B7F]"
+                      : "hover:bg-white/10"
+                  }`}
+                  onClick={() => handleNavigation(key)}
+                >
+                  <Icon size={18} />
+                  <span className="text-sm">{label}</span>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
-        <button className="flex items-center justify-center sm:justify-center gap-2 hover:bg-white border hover:text-[#073B7F] bg-[#073B7F] border-white text-white w-full py-1.5 rounded-full font-semibold text-sm">
-          <LogOut size={16} />
-          <span className="hidden sm:inline">Logout</span>
-        </button>
-      </div>
-    </aside>
-  )
+
+        {/* User + Offline + Logout */}
+        <div className="p-4">
+          <div className="flex items-center gap-3 mb-3 relative">
+            <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-sm">
+                {schoolName ? schoolName.charAt(0).toUpperCase() : "S"}
+              </span>
+            </div>
+            <div>
+              <p className="font-semibold text-sm truncate max-w-[120px]">{schoolName}</p>
+              <p className="text-xs opacity-75">{isOffline ? "Offline" : "Admin"}</p>
+            </div>
+
+            {isOffline && (
+              <div className="absolute right-0 top-0 flex items-center gap-1 text-xs bg-red-600 px-2 py-0.5 rounded-full">
+                <WifiOff size={12} />
+                <span>Offline</span>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center gap-2 hover:bg-white border hover:text-[#073B7F] bg-[#073B7F] border-white text-white w-full py-1.5 rounded-full font-semibold text-sm"
+          >
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+    </>
+  );
 }

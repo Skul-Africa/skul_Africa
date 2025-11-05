@@ -58,6 +58,32 @@ function validateToken() {
     return { valid: false, reason: "invalid" };
   }
 }
+const getRefreshToken = () => localStorage.getItem("school_refresh_token");
+
+async function refreshAuthToken() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+
+  try {
+    const res = await fetch("https://skul-africa.onrender.com/api/v1/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!res.ok) throw new Error("Refresh failed");
+    const data = await res.json();
+
+    // Assuming API returns { accessToken, refreshToken }
+    localStorage.setItem("school_token", data.accessToken);
+    localStorage.setItem("school_refresh_token", data.refreshToken);
+    console.log("✅ Token refreshed");
+    return data.accessToken;
+  } catch (err) {
+    console.error("❌ Failed to refresh token:", err);
+    return null;
+  }
+}
 
   // =======================
   // SCHOOL NAME (from JWT)
@@ -84,14 +110,16 @@ function validateToken() {
   // =======================
   // COMMON FETCH FUNCTION
   // =======================
-  async function safeFetch(url: string, key: string) {
-    if (!navigator.onLine) {
-      console.warn(`⚠️ Offline: loading cached ${key} data`);
-      const cached = localStorage.getItem(key);
-      return cached ? JSON.parse(cached) : [];
-    }
+ async function safeFetch(url: string, key: string) {
+  if (!navigator.onLine) {
+    console.warn(`⚠️ Offline: loading cached ${key} data`);
+    const cached = localStorage.getItem(key);
+    return cached ? JSON.parse(cached) : [];
+  }
 
-    const token = getAuthToken();
+  const token = getAuthToken();
+
+  try {
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -99,13 +127,43 @@ function validateToken() {
       },
     });
 
-    console.log(`${key} response status:`, res.status);
-    if (!res.ok) throw new Error(`Failed to fetch ${key}: ${res.status}`);
+    // Handle expired token or 401
+    if (res.status === 401 || res.status === 403) {
+      console.warn(`⚠️ Token expired or invalid. Trying refresh...`);
+      const newToken = await refreshAuthToken();
 
+      if (newToken) {
+        const retry = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${newToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!retry.ok) throw new Error(`Retry failed: ${retry.status}`);
+        const retryData = await retry.json();
+        localStorage.setItem(key, JSON.stringify(retryData));
+        return retryData;
+      } else {
+        throw new Error("Unauthorized — please log in again");
+      }
+    }
+
+    if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
     const data = await res.json();
     localStorage.setItem(key, JSON.stringify(data));
     return data;
+
+  } catch (err) {
+    console.error(`❌ Fetch error for ${key}:`, err);
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      console.warn(`⚠️ Using cached ${key} due to error`);
+      return JSON.parse(cached);
+    }
+    return [];
   }
+}
+
   useEffect(() => {
   async function fetchAll() {
     const tokenCheck = validateToken();
@@ -343,3 +401,4 @@ function StatsCard({
     </div>
   );
 }
+

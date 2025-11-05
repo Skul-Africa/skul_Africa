@@ -28,15 +28,15 @@ const SchoolAccessPage = () => {
   const [success, setSuccess] = useState("");
 
   // ✅ Check if already logged in (token exists)
-  useEffect(() => {
-    const storedToken =
-      localStorage.getItem("school_token") ||
-      sessionStorage.getItem("school_token");
-    if (storedToken) {
-      console.log("✅ Existing token found, redirecting to dashboard...");
-      router.push("/dashboard/school");
-    }
-  }, [router]);
+  // useEffect(() => {
+  //   const storedToken =
+  //     localStorage.getItem("school_token") ||
+  //     sessionStorage.getItem("school_token");
+  //   if (storedToken) {
+  //     console.log("✅ Existing token found, redirecting to dashboard...");
+  //     router.push("/dashboard/school");
+  //   }
+  // }, [router]);
 
   // ✅ Token helpers
   const saveTokens = (token: string) => {
