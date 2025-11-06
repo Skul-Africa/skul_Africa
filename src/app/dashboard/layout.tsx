@@ -57,13 +57,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [router]);
 
   const getCurrentView = () => {
-    if (pathname.includes("/student")) return "students";
-    if (pathname.includes("/teacher")) return "teachers";
-    if (pathname.includes("/courses")) return "subjects";
-    if (pathname.includes("/events")) return "events";
-    if (pathname.includes("/school")) return "dashboard";
-    return "dashboard";
-  };
+    if (pathname.includes("/student")) return "students"
+    if (pathname.includes("/teacher")) return "teachers"
+    if (pathname.includes("/courses")) return "subjects"
+    if (pathname.includes("/events")) return "events"
+    if (pathname.includes("/classes")) return "classes"
+    if (pathname.includes("/school")) return "dashboard"
+    return "dashboard"
+  }
 
   const currentView = getCurrentView();
 
@@ -79,8 +80,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         router.push("/dashboard/school");
         break;
       case "classes":
-        router.push("/dashboard/school");
-        break;
+        router.push("/dashboard/classes")
+        break
       case "subjects":
         router.push("/dashboard/courses");
         break;
