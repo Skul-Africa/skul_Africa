@@ -15,6 +15,11 @@ export default function RoleSelectionPage() {
       title: 'School',
       description: 'Manage accounts, users, and organizational settings'
     },
+      {
+      id: 'teacher',
+      title: 'teacher',
+      description: 'Access courses, assign stdents task manage classrooms'
+    },
     {
       id: 'student',
       title: 'Student',
@@ -35,10 +40,13 @@ export default function RoleSelectionPage() {
           router.push('/login/login_as_school');
           break;
         case 'student':
-          router.push('/login/login_as_student');
+          router.push('/coming-soon');
+          break;
+             case 'teacher':
+          router.push('/login/login_as_teacher');
           break;
         case 'user':
-          router.push('/login/login_as_user');
+          router.push('/coming-soon');
           break;
         default:
           router.push('/login/dashboard');

@@ -81,6 +81,8 @@ export default function DashboardSidebar({
       router.push("/");
     }
   };
+  const [showMore, setShowMore] = useState(false);
+
 
   const handleNavigation = (view: string) => {
     if (onNavigate) onNavigate(view);
@@ -101,20 +103,63 @@ export default function DashboardSidebar({
   return (
     <>
       {/* 📱 Bottom Navbar (Mobile Only) */}
-      <nav className="sm:hidden fixed bottom-0 left-0 w-full bg-[#073B7F] text-white flex justify-around items-center h-14 shadow-lg z-50 overflow-x-auto">
-        {menuItems.map(({ key, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => handleNavigation(key)}
-            className={`flex flex-col items-center text-xs ${
-              currentView === key ? "text-yellow-300" : "text-white"
-            }`}
-          >
-            <Icon size={20} />
-            <span className="text-[10px]">{key}</span>
-          </button>
-        ))}
-      </nav>
+    {/* 📱 Bottom Navbar (Mobile Only) */}
+<nav className="sm:hidden fixed bottom-0 left-0 w-full bg-[#073B7F] text-white flex justify-around items-center h-14 shadow-lg z-50">
+  {[
+    { key: "dashboard", icon: Home },
+    { key: "students", icon: Users },
+    { key: "teachers", icon: User },
+    { key: "classes", icon: Calendar },
+  ].map(({ key, icon: Icon }) => (
+    <button
+      key={key}
+      onClick={() => handleNavigation(key)}
+      className={`flex flex-col items-center text-xs ${
+        currentView === key ? "text-yellow-300" : "text-white"
+      }`}
+    >
+      <Icon size={20} />
+      <span className="text-[10px] capitalize">{key}</span>
+    </button>
+  ))}
+
+  {/* ➕ More Button */}
+  <button
+    onClick={() => setShowMore((prev) => !prev)}
+    className="flex flex-col items-center text-xs text-white"
+  >
+    <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+      <span className="text-lg font-bold">+</span>
+    </span>
+    <span className="text-[10px]">More</span>
+  </button>
+
+  {/* Popup Menu */}
+  {showMore && (
+    <div className="absolute bottom-16 left-0 right-0 mx-auto w-[90%] bg-white text-[#073B7F] rounded-2xl shadow-lg py-2 animate-fade-in">
+      {[
+        { key: "subjects", label: "Subjects", icon: BookOpen },
+        { key: "events", label: "Events", icon: Calendar },
+        { key: "settings", label: "Settings", icon: Settings },
+        { key: "news", label: "News", icon: Newspaper },
+        { key: "feedback", label: "Feedback", icon: MessageSquare },
+      ].map(({ key, label, icon: Icon }) => (
+        <button
+          key={key}
+          onClick={() => {
+            handleNavigation(key);
+            setShowMore(false);
+          }}
+          className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-[#073B7F]/10"
+        >
+          <Icon size={18} />
+          <span className="text-sm">{label}</span>
+        </button>
+      ))}
+    </div>
+  )}
+</nav>
+
 
       {/* 💻 Sidebar (Desktop Only) */}
       <aside className="hidden sm:flex flex-col justify-between bg-[#073B7F] text-white w-48 h-screen fixed left-0 top-0 transition-all duration-300 z-40">
