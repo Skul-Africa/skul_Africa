@@ -8,6 +8,7 @@ import {
   Calendar,
   Settings,
   LogOut,
+  CheckSquare
 } from "lucide-react";
 
 export default function TeacherSidebar() {
@@ -16,9 +17,11 @@ export default function TeacherSidebar() {
 
   const menuItems = [
     { key: "dashboard", label: "Dashboard", icon: Home },
-    { key: "classes", label: "My Classes", icon: Calendar },
     { key: "subjects", label: "Subjects", icon: BookOpen },
-    { key: "settings", label: "Settings", icon: Settings },
+    { key: "attendance", label: "attendance", icon: CheckSquare },
+    { key: "teachersComingSoon", label: "My Classes", icon: Calendar },
+    { key: "staffSettings", label: "Settings", icon: Settings },
+
   ];
 
   const handleNavigate = (key: string) => {
@@ -138,9 +141,8 @@ export default function TeacherSidebar() {
                 <Icon size={20} />
               </div>
               <span
-                className={`text-[10px] transition ${
-                  isActive ? "text-white" : "text-white/70"
-                }`}
+                className={`text-[10px] transition ${isActive ? "text-white" : "text-white/70"
+                  }`}
               >
                 {label}
               </span>

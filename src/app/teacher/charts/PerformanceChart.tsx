@@ -5,7 +5,11 @@ import dynamic from "next/dynamic";
 
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-const PerformanceChart: React.FC = () => {
+interface PerformanceChartProps {
+  darkMode?: boolean;
+}
+
+const PerformanceChart: React.FC<PerformanceChartProps> = ({ darkMode = false }) => {
   const [mounted, setMounted] = useState(false);
   const [chartData, setChartData] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -14,10 +18,8 @@ const PerformanceChart: React.FC = () => {
     setMounted(true);
 
     const fetchChartData = async () => {
-      const token = localStorage.getItem("teacher_token"); // 👈 make sure this key matches your login storage
-
+      const token = localStorage.getItem("teacher_token");
       if (!token) {
-        console.warn("⚠️ No teacher token found — using demo data");
         setChartData([65, 59, 80, 81, 56, 72, 88, 76, 65, 77, 85, 90]);
         setLoading(false);
         return;
@@ -35,20 +37,8 @@ const PerformanceChart: React.FC = () => {
           }
         );
 
-        const text = await res.text(); // read raw response
-        console.log("🟢 Raw response:", text);
-
-        if (!res.ok) {
-          console.warn("⚠️ Fetch failed:", res.status, res.statusText);
-          setChartData([45, 42, 60, 70, 46, 50, 65, 62, 54, 60, 70, 75]);
-          setLoading(false);
-          return;
-        }
-
-        const data = JSON.parse(text);
-        console.log("✅ Parsed performance data:", data);
-
-        // Assuming data looks like { performance: [..values..] }
+        if (!res.ok) throw new Error("Failed to fetch performance data");
+        const data = await res.json();
         setChartData(data.performance || []);
       } catch (err) {
         console.error("❌ Error loading performance data:", err);
@@ -66,6 +56,8 @@ const PerformanceChart: React.FC = () => {
       type: "area",
       height: 350,
       toolbar: { show: false },
+      foreColor: darkMode ? "#f3f4f6" : "#1f2937", // labels color
+      background: darkMode ? "#1e293b" : "#ffffff",
     },
     dataLabels: { enabled: false },
     stroke: { curve: "smooth", width: 3 },
@@ -75,14 +67,18 @@ const PerformanceChart: React.FC = () => {
     },
     xaxis: {
       categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+      labels: { style: { colors: darkMode ? "#f3f4f6" : "#1f2937" } },
     },
     yaxis: {
       min: 0,
       max: 100,
       tickAmount: 5,
-      labels: { formatter: (val: number) => `${val}%` },
+      labels: { formatter: (val: number) => `${val}%`, style: { colors: darkMode ? "#f3f4f6" : "#1f2937" } },
     },
-    colors: ["#3b82f6"],
+    colors: [darkMode ? "#60a5fa" : "#3b82f6"],
+    grid: {
+      borderColor: darkMode ? "#334155" : "#e5e7eb",
+    },
   };
 
   const series = [
@@ -95,12 +91,15 @@ const PerformanceChart: React.FC = () => {
   if (!mounted) return null;
 
   return (
-    <div className="bg-white/80 backdrop-blur-md p-5 rounded-xl shadow-sm border border-gray-200">
+    <div
+      className={`p-5 rounded-xl shadow-sm border ${
+        darkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"
+      }`}
+    >
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Performance Overview</h2>
-        {loading && <span className="text-sm text-gray-500 animate-pulse">Loading...</span>}
+        <h2 className="text-lg font-semibold">Performance Overview</h2>
+        {loading && <span className="text-sm animate-pulse">{darkMode ? "text-gray-300" : "text-gray-500"}</span>}
       </div>
-
       <div className="h-[300px] w-full">
         <ReactApexChart options={options} series={series} type="area" height="100%" width="100%" />
       </div>
